@@ -1,0 +1,28 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+#all{
+    width: 600px;
+    height: 700px;
+    margin: 0 auto;
+    background-color: cadetblue;
+}
+#top{
+    height: 50px;
+    width: 100%;
+    background-color: aqua;
+}
+#bar{
+    height: 30px;
+    float: right;
+}
+#center{
+    height: 500px;
+    width: auto;
+    background-color: chartreuse;
+}
+th,td{
+    padding-left: 30px;
+    /*left: 10px;*/
+}

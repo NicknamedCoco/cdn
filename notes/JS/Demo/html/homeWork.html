@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>作业</title>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+<body>
+    <div id="all">
+        <div id="top">
+            <div id="bar">
+                <input type="button" value="查询" id="search"/>
+                <input type="button" value="新建" id="addOrder"/>
+                <input type="button" value="编辑" id="update"/>
+                <input type="button" value="删除" id="del"/>
+            </div>
+        </div>
+        <div id="center">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="home"></th>
+                        <th>提单编号</th>
+                        <th>出发港</th>
+                        <th>到货港提货编码</th>
+                        <th>获取品类</th>
+                        <th>重量</th>
+                    </tr>
+                </thead>
+                <tbody id="body">
+
+                </tbody>
+            </table>
+        </div>
+        <div id="bottom" style="display: none">
+            <form>
+                <span>提单信息</span><br>
+                到货港：
+                <select id="ArrivedPort">
+                    <option>秦皇岛港</option>
+                    <option>大连港</option>
+                    <option>福州港</option>
+                </select>
+                出发港：
+                <select id="goPort">
+                    <option value="秦皇岛港">秦皇岛港</option>
+                    <option value="大连港">大连港</option>
+                    <option value="福州港">福州港</option>
+                </select><br>
+                提单编码：<input type="text" id="orderId">
+                到货港提货编码：<input type="text" id="portCode"><br>
+                货物类型：
+                <select id="goods">
+                    <option value="矿石">矿石</option>
+                    <option value="成衣">成衣</option>
+                    <option value="钢材">钢材</option>
+                    <option value="服装">服装</option>
+                </select>
+                重量：
+                <input type="text" id="weight"><br>
+                <input type="button" value="确认" id="confirm"/>
+                <input type="reset">
+
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript" src="../js/index.js"></script>
+</body>
+</html>

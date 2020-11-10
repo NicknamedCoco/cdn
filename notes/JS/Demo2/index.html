@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<style type="text/css">
+    span{
+        font-size: 12px;
+        color: red;
+    }
+</style>
+<script type="text/javascript">
+
+    //表单验证
+    /*
+        1，用户名不能为空
+        2，用户名只能6-14位
+        3，用户名只能由数字和字母组成
+        4，密码与确认密码保持一致
+        5，邮箱验证，必须是qq邮箱
+        6，每一个文本框按确认键，下一个文本框自动获得焦点
+        7，所有标签失去焦点后验证数据合法性，如果用户输入的数据不正确，请提示
+        8，当出现错误信息时，点击文本框，清除文本框数据，并清除错误提示
+        9，所有数据全部正确以后才能提交
+     */
+    window.onload=function () {
+        //验证用户名
+        let usernameError = document.getElementById("usernameError");
+        let username = document.getElementById("username");
+        username.onblur=function(){
+            let usernameValue = username.value;
+            usernameValue=usernameValue.trim()
+            var regExpUsername=/^[A-Za-z0-9]{6,14}$/
+            if(usernameValue===""){
+                usernameError.innerText="用户名不能为空"
+            }else if(usernameValue.length<6||usernameValue>14){
+                usernameError.innerText="用户名只能6到14位"
+            }else if(!(regExpUsername.test(usernameValue))){
+                usernameError.innerText="用户名只能由数字和字母组成"
+            }
+        }
+        username.onfocus=function () {
+            if (usernameError.innerText!=""){
+                usernameError.innerText=""
+                username.value=""
+            }
+        }
+        //验证密码
+        let password = document.getElementById("password");
+        let verifyPassword = document.getElementById("verifyPassword");
+        let verifyPasswordError = document.getElementById("verifyPasswordError");
+        username.onkeydown=function(event){
+            if (event.key==="Enter"){
+                password.focus()
+            }
+
+        }
+        password.onkeydown=function(event){
+            if (event.key==="Enter"){
+                verifyPassword.focus()
+            }
+        }
+
+        verifyPassword.onblur=function(){
+            let passwordValue = password.value;
+            let verifyPasswordValue = verifyPassword.value;
+            passwordValue=passwordValue.trim()
+            verifyPasswordValue=verifyPasswordValue.trim()
+            if(!(passwordValue===verifyPasswordValue)){
+                verifyPasswordError.innerText="密码和确认密码要一致"
+            }
+        }
+        verifyPassword.onfocus=function () {
+            if (verifyPasswordError.innerText!=""){
+                verifyPasswordError.innerText=""
+                verifyPassword.value=""
+            }
+        }
+        //邮箱验证
+        let email = document.getElementById("email");
+        let emailError = document.getElementById("emailError");
+        email.onblur=function () {
+            let emailValue = email.value;
+            emailValue=emailValue.trim()
+            var regExpEmail=/^[1-9]\d{7,10}@qq\.com$/
+            if(!(regExpEmail.test(emailValue))){
+                emailError.innerText="邮箱地址非法，只能填QQ邮箱"
+            }
+        }
+        email.onfocus=function () {
+            if(emailError.innerText!=""){
+                emailError.innerText=""
+                email.value=""
+            }
+        }
+        verifyPassword.onkeydown=function(event){
+            if (event.key==="Enter"){
+                email.focus()
+            }
+        }
+        //表单提交
+        let submit = document.getElementById("btn");
+        let myForm = document.getElementById("myForm");
+        submit.onclick=function () {
+            username.focus()
+            username.blur()
+            verifyPassword.focus()
+            verifyPassword.blur()
+            email.focus()
+            email.blur()
+            if(usernameError.innerText==""&&verifyPasswordError.innerText==""&&emailError.innerText==""){
+                myForm.action=""
+                myForm.submit()
+            }else{
+                alert("表单提交失败")
+            }
+        }
+        email.onkeydown=function(event){
+            if (event.key==="Enter"){
+                submit.click()
+            }
+        }
+
+    }
+</script>
+
+<form style="border: 2px;" id="myForm">
+    用户名：<input type="text" id="username"/><span id="usernameError"></span><br>
+    密码：<input type="password" id="password" /><br>
+    确认密码：<input type="password" id="verifyPassword" /><span id="verifyPasswordError"></span><br>
+    邮箱：<input type="email" id="email"/><span id="emailError"></span><br>
+    <input type="button" id="btn" value="提交"/>
+</form>
+
+
+</body>
+</html>
