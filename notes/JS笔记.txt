@@ -1,0 +1,510 @@
+变量
+    当变量声明后没有手动赋值，系统默认赋值undefined，undefined在js中是一个具体值,NaN是一个具体的值，表示不是一个数字
+        var i;
+        alert(i);   //值是undefined
+    当变量没有声明就访问，报错ReferenceError,语法错误
+        alert(age);
+    全局变量和局部变量
+        全局变量：在函数体声明之外声明的变量，全局变量的生命周期是浏览器打开时声明，浏览器关闭时销毁，
+                尽量少用，会一直存在浏览器内存空间
+        局部变量：在函数体内部声明，不过如果一个变量声明的时候没有关键字var，不管变量在哪里声明的，则默认为这个变量是全局变量，
+                形式参数也属于局部变量
+    值的类型
+        1)变量没有类型，但是值/数据有类型：原始类型，引用类型
+            ES6：即Ecmascript6，是一种规范，在ES6之前的版本，数据类型有6种
+            原始类型：Undefined,Number,String,Null,Boolean,
+            引用类型及子类：Object
+            ES6版本及之后的版本，新增一个Symbol
+
+        2)在程序运行阶段动态获取变量的数据类型的运算符，typeof
+            typeof运算符的语法格式：
+                typeof 变量名
+            typeof运算符的运算结果，只能是以下6个字符串中的一个："undefined","string","number","boolean","object","function"
+                var a = null;
+                alert(typeof a);    //null属于Null类型，但typeof运算符的结果是"object"
+        3)Undefined类型，Null类型
+            undefined类型只有一个值，这个值就是undefined,当一个变量没有手动赋值，
+            系统自动赋值undefined,或者可以手动给变量赋值undefined
+                var i;      //undefined
+                var j = undefined;  //undefined，手动赋值
+                var k = "undefined" //"undefined"是一个字符串
+            Null类型只有一个值，就是null,不过typeof null时，结果是"object",js历史遗留问题
+        4)Number类型
+            Number类型包括所有数字类型，整数，小数，NaN，Infinity(表示无穷大)也是Number类型
+                var i=NaN;  //Number类型
+                var j=Infinity  //Number类型
+            什么情况下结果是一个NaN呢？运算结果本来是一个数字，但算完不是一个数字的时候，结果是NaN
+                var a =100;
+                var b="china";
+                alert(a/b);     //结果是NaN
+                alert(a+b);     //结果不是NaN,会先做字符串拼接，即"100china"
+            Infinity,当除数为0时，结果为无穷大，Java中报错
+                alert(10/0);
+            isNaN函数，用法：isNaN(数据)，结果为true表示不是一个数字，为false表示是一个数字
+                function sum(a,b){
+                    if(isNaN(a)||isNaN(b)){
+                        alert("a,b必须是数字");
+                        return;
+                    }
+                    return a+b;
+                }
+            还有parseInt()函数，parseFloat()函数，Math.ceil()函数,
+                parseInt,将字符串自动转换成数字，取整数位"3.99999",就是3
+                parseFloat,将字符串转换成数字
+                Math.ceil,作用是向上取整，不是四舍五入，即var i = Math.ceil(2.0001),值为3；
+        5)Boolean类型
+            在if判断中，只能是true或false,如果是其他类型的值，字符串，数字，会自动转换成true或者false(底层调用Boolean(数值)函数)
+            如果数值是""，0，null,NaN,undefined时,就是false
+            规律，"有"代表真，"没有"代表假
+        6)String类型
+            在js中字符串可以使用单引号，也可以使用双引号
+            创建字符串对象，两种方式：
+                第一种 var s1 ='abc';  //typeof s1的值是string,原始类型字符串类型，被称为小String
+                第二种(使用js内置的支持类String) var s2 = new String('abc');   //typeof s2的值是object类型,被称为大String
+            无论是小String还是大String,他们的属性和函数都是通用的，s1.length,s2.length，java中是length(),长度方法
+            常用的字符串函数：charAt,indexof,lastIndexof,replace,split,substr,substring,toLowerCase,toSupperCase
+                "abcdef".indexof("cd"),根据指定的字符串，查找该字符串出现的索引，返回-1代表本字符串不存在指定字符串
+                replace函数，只替换最开始的一个字符串
+                substr和substring的区别，substr(startIndex,length),startIndex是字符串索引，length是要截取的长度
+                substring(startIndex,endIndex),endIndex表示最后的索引位置，但不包含endIndex本身，左闭右开原则
+                    'abcdef'.substr(2,4)    //返回cdef
+                    'abcdef'.substring(2,4) //返回cd
+        7)Object类
+            1)Object类型是所有类型的超类，自定义的类型，默认继承Object
+            2)Object类包括哪些属性？
+                prototype属性(常用的),给类动态的扩展属性和函数
+                constructor属性
+            3)常用的方法：
+                toString,
+                ValueOf,
+                toLocalsString
+            4)在JS中自定义的类默认继承Object,会继承Object类中所有属性和方法
+            换句话说，自定义的类也有prototype属性
+            5)在js当中怎么定义类，怎么new对象
+                定义类的语法
+                    第一种：function 类名(形参){}
+                    第二中：类名=function(形参){}
+                创建对象的方法：
+                    new 构造方法名(形参)
+                function send(){}
+                send();     //把send当做一个普通的函数调用
+                var i = new send(); //把send当做一个类来创建对象，i是一个引用，保存内存地址指向堆中的对象
+            6)访问对象的属性
+                function User(a,b){
+                    this.name=a;
+                    this.age=b;
+                }
+                var u1=new User();
+                alert(u1.name);     //第一种访问对象中属性的方式
+                alert(u1.age);
+                alert(u1["name"]);  //第二种访问对象中属性的方式
+                alert(u1["age"]);
+            7)可以通过prototype属性给类动态扩展属性和函数
+                let product = new Product(1,"苹果",20);
+                alert(product["pname"]+"---"+product.pri);
+                Product.prototype.getpri=function (){
+                    return this.pri;
+                }
+                alert(product.getpri());
+            8)null,NaN,undefined有什么区别？
+                1，数据类型不一样
+                2，null和undefined可以等同，即null==undefined，true
+                    ==是等同运算符，只判断值是否相等，===是全等运算符，既判断值是否相等，又判断数据类型是否相等
+函数
+    函数定义的两种方式
+        1，function 函数名(形式参数列表){
+            函数体;
+        }
+           function sum(a,b){ alert(a+b); }
+
+        2,函数名=function(形式参数列表){
+            函数体;
+        }
+    JS函数不能重载，因为参数的类型没有限制，参数的个数也没有限制
+    JS函数中，两个函数同名的话，后面定义的函数会覆盖前面的函数，所以JS函数中函数不能重名
+
+常用事件
+    blur,失去焦点
+    focus,获得焦点
+    click,单击鼠标
+    dblclick,双击鼠标
+    keydown,键盘按下
+    keyup，键盘弹起
+    mousedown,鼠标按下
+    mouseup，鼠标弹起
+    mouseover，鼠标经过
+    mouseout，鼠标离开
+    mousemove，鼠标移动
+    reset,表单重置
+    submit，表单提交
+    change,下拉列表选中项改变或文本框内容改变
+    select,文本被选定
+    load，页面加载完毕
+    任何事件都会对应一个事件句柄，事件句柄是在事件前添加一个on，即onclick
+    事件句柄一般以标签的属性形式出现
+    注册事件的第一种方式：直接在标签中使用事件句柄
+        <script type="text/javascript">
+            sayHello=function () {      //sayHello被称为回调函数，函数不是程序去调用，等待用户触发调用，就称为回调函数
+                alert("hello");         //也就是说，这个函数是等待别人调用的
+            }
+        </script>
+        <input type="button" value="get" onclick="sayHello()"/>
+    注册事件的第二种方式，是使用纯js代码完成事件的注册
+        <script type="text/javascript">
+            function doSome(){
+                alert("这里是回调函数");
+            }
+
+            var btnObj = document.getElementById("btn"); //document全部小写，内置对象，可以直接用，document代表全部页面
+            btnObj.onclick=doSome(回调函数) ;    //获取按钮对象后，给按钮的click事件注册回调函数，回调函数不加小(),只填函数名
+            btnObj.onclick=function(){         //也可以使用匿名回调函数
+                alert("也可以使用匿名函数");
+            }
+            开发中常用的使用方式：
+            document.getElementById("btn").onclick=function(){
+                alert("超帅气版本将回调函数注册到事件中");
+            }
+        </script>
+JS代码的执行顺序
+    怎么让JS代码等待页面加载完毕后执行？
+    <script type="text/javascript">
+        window.onload=function(){       //这个回调函数在页面加载的时候注册
+            document.getElementById("btn").onclick=function () {    //这个回调函数在页面加载完毕后注册
+                alert("页面加载完毕后，匿名回调函数才被注册到按钮事件中");
+            }
+        }
+    </script>
+    <input type="button" value="get" id="btn"/>
+
+键盘事件绑定
+    <script type="text/javascript">
+        window.onload=function () {
+            document.getElementById("password").onkeydown=function (event) {
+                if(event.key==='Enter'){
+                    alert('正在登录****')
+                }
+            }
+        }
+    </script>
+    账号：<input type="text" id="username"/>
+    密码：<input type="password"  id="password"/>
+        <input type="button" value="登录"/>
+JS的void运算符
+    void运算符语法：void(表达式)
+    void运算符原理，执行表达式，但不返回任何结果，
+    javascript:void(0),其中javascript:的作用是告诉浏览器后面是一段js代码，不能省略
+    void运算符只在超链接中的href属性中用到
+    <a href="javascript:void(0)" onclick="alert('执行一段js代码')"></a>   //点击超链接，执行一段js代码，但不跳转页面
+    void(),小括号中必须有表达式0也好，100也行，必须有值
+
+js控制语句
+    数组的遍历
+        for (let i = 0; i < arr.length; i++) {
+            alert(arr[i]);
+        }
+
+        for(var i in arr){      //for，，in语句可以遍历对象中的属性，此时i就为对象中的属性名,obj[i],就能访问对象属性的值
+            alert(arr[i]);
+        }
+    with语句
+    with(obj){
+        with语句可以使得在此方法体内，直接访问obj中的属性
+    }
+DOM和BOM的区别？
+    DOM是文档对象模型，BOM是浏览器对象模型
+    DOM的顶级对象是document,BOM的顶级对象是window
+    实际上BOM是包括DOM的，在我们document.getElementById时，省略了，window.document...
+
+blur事件引发的this用法
+    blur事件是失去焦点
+    <input type="text" onblur="alert(this.value)"/>     //this代表标签对象，this.value就是获取该标签的值
+
+innerHTML和innerText属性
+    innerHTML和innerTest可以设置双标签中的值，<a id="url">可以设置这里的值，只要是双标签都可以</a>
+    他们的区别是：
+        相同点：innerHTML和innerText都可以设置双标签中的值
+        不同点：innerHTML可以把后面的"字符串"当做成HTML代码来执行，document.getElementById("url").innerHTML="<h2>wang<h2>"
+        而innerText，即使后面是一段HTML代码，也只会当做普通的字符串看待
+DOM编程-正则表达式
+    正则表达式主要用在字符串格式匹配方面
+    常见的正则表达式符号：
+        .   匹配除换行符以外的任意字符
+        \w  匹配字母或数字或下划线或汉字
+        \s  匹配任意的空白符
+        \d  匹配数字
+        \b  匹配单词的开始或结束
+        ^   匹配字符串的开始
+        $   匹配字符串的结束
+        匹配次数：
+        *       重复0次或更多次
+        +       重复1次或更多次
+        ?       重复0次或1次
+        {n}     重复n次
+        {n,}    重复n次或更多次
+        {n,m}   重复n到m次
+
+        \W      匹配任意不是字母，数字，下划线，汉字的字符
+        \S      匹配任意不是空白符的字符
+        \D      匹配任意非数字的字符
+        \B      匹配不是单词开始和结束的位置
+        [^x]    匹配除了x以外的任意字符
+        [^aeiou]    匹配除了aeiou这几个字母以外的任意字符
+        [1-9]   表示1-9的任意一个字符，次数一次
+        [A-Za-z0-9] 表示A-Za-z0-9中的任意一个字符
+        [A-Za-z0-9-] 表示A-Z,a-z,0-9,-号 中的任意一个字符
+        |表示或者
+        \.  表示具体的.
+    怎么创建正则表达式对象，怎么调用正则表达式的方法
+        第一种创建的方式
+            var regExp = /正则表达式/flags
+        第二种创建方式：使用内置支持类RegExp
+            var regExp = new RegExp("正则表达式","flags");
+        flags的取值：可以是单个的g,i,m字符，还可以是组合
+        g:表示全局匹配
+        i:忽略大小写
+        m:多行搜索/多行匹配(ES规范制定以后才支持m),如果创建正则表达式参数给的是正则表达式时，flags不能写m
+            即，/正则表达式|字符串/flags，这里给正则表达式时，flags不能是m
+        正则表达式对象中的test()方法
+            true/false = 正则表达式对象.test(用户填写的字符串);
+            true表示字符串格式匹配成功
+            false表示字符串格式匹配失败
+    验证邮箱：
+        <script type="text/javascript">
+            window.onload = function () {
+                document.getElementById("btn").onclick = function () {
+                    let value = document.getElementById("mytext").value;
+                    var regExp = /[1-9]\d{7,10}@qq\.com/;
+                    let ok = regExp.test(value);
+                    if (!ok) {
+                        document.getElementById("error").innerText = "邮箱验证失败"
+                    } else {
+                        document.getElementById("error").innerText = "邮箱验证成功"
+                    }
+                }
+            }
+        </script>
+
+        <input type="text" id="mytext"><br>
+        <input type="button" value="单击验证邮箱" id="btn"/>
+    去除前后字符串中的空白字符
+        <script type="text/javascript">
+            window.onload=function () {
+                document.getElementById("btn").onclick=function () {
+                    let value = document.getElementById("mytext").value;
+                    value=value.trim()
+                    alert('--->'+value+'<---')
+                }
+            }
+        </script>
+
+        <input type="text" id="mytext"><br>
+        <input type="button" value="去除字符串前后空白字符" id="btn"/>
+    but,没那么简单，如果IE低版本浏览器不支持trim浏览器怎么办呢？重写String的trim()方法,protoptype属性覆盖String中方法
+        <script type="text/javascript">
+            String.prototype.trim=function(){
+                return this.replace(/\s+/,"").replace(/\s+$/,'')
+            }
+            window.onload = function () {
+                document.getElementById("btn").onclick = function () {
+                    let value = document.getElementById("mytext").value;
+                    value=value.trim();
+                    alert('--->'+value+'<---');
+                }
+            }
+        </script>
+
+        <input type="text" id="mytext"><br>
+        <input type="button" value="清除字符串的空白字符" id="btn"/>
+获取下拉列表中被选中的值
+    <!--获取下拉列表的值-->
+    <script type="text/javascript">
+        window.onload=function () {
+            let provinces = document.getElementById("Provinces");
+            provinces.onchange=function () {
+                console.log(provinces.value)                //第二种
+            }
+        }
+    </script>
+
+    <select id="Provinces" onchange="alert(this.value)">      //第一种
+        <option>请选择省份</option>
+        <option value="jx">江西</option>
+        <option value="hb">湖北</option>
+        <option value="gd">广东</option>
+        <option value="sh">上海</option>
+    </select>
+JS中的时间
+    获取时间的三种方式
+            1)var dateTime = new Date()
+              document.write(dateTime)
+            2)dateTime=dateTime.toLocaleString()
+              document.write(dateTime)
+            3)var dateTime2 = new Date()
+              let year = dateTime2.getFullYear();
+              let month = dateTime2.getMonth();  //获取月份(0-11)
+              let day = dateTime2.getDay();    //这是获取一周中的第几天(0-6)
+              let day2 = dateTime2.getDate();
+              document.write(year+"年"+(month+1)+"月"+day2+"日")
+    获取系统毫秒数(从1970年1月1号0分0秒到现在的毫秒数)
+    document.write(new Date().getTime())
+    设置定时器，点击开始按钮，显示时间一直在走，点击关闭按钮，时间停止
+    function showTime(){
+        let time = document.getElementById("time");
+        let date = new Date();
+        time.innerHTML=date.toLocaleString()
+    }
+    function start() {
+            v = window.setInterval("showTime()",1000);
+    }
+    function end() {
+        window.clearInterval(v)
+    }
+    </script>
+    <input type="button" id="began" value="显示时间" onclick="start()">
+    <input type="button" id="end" value="停止时间" onclick="end()"><br>
+    <div id="time"></div>
+
+JS中的数组
+    声明方式
+        1)var arr = []          //长度为0
+        2)var arr2 = [1,3,5,7]  //长度为4
+            arr2[7]="text"      //数组可以自动扩容，中间元素值会默认为undefined
+        3)var arr3 = new Array()//长度为0
+        4)var arr4 = new Array(4)//长度为4
+        5)var arr5 = new Array(2,3)//长度为2，元素为2,3
+    数组中的方法：
+        join方法，:
+            var arr = [1,3,5,7]
+            alert(arr.join('-'))   //输出为1-3-5-7，将数组中元素取出返回一个用-连接的字符串
+        push方法：
+            添加元素到数组末尾，或者叫压入数据
+            var arr = [1,3,5,7]
+            arr.push(9)     //数组为[1,3,5,7,9]
+        pop方法：
+            删除数组最后元素
+            var arr = [1,3,5,7]
+            var yuansu = arr.pop()     //返回被删除的元素，数组为[1,3,5]
+        reverse方法：
+            将数组翻转：[7,5,3,1]
+
+BOM中的open和close
+    <input type="button"  value="打开博客(新窗口)" onclick="window.open('http://keyi.world','_blank')">
+    <input type="button"  value="打开博客(当前窗口)" onclick="window.open('http://keyi.world','_self')">
+    <input type="button"  value="打开博客(父窗口)" onclick="window.open('http://keyi.world','_parent')">
+    <input type="button"  value="打开博客(顶级窗口)" onclick="window.open('http://keyi.world','_top')">
+    <!--关闭窗口-->
+    <input type="button" value="关闭窗口" onclick="window.close();"/>
+
+BOM中的消息框和确认框
+    消息框：window.alert("消息框");
+    确认框：window.confirm("亲，真的要删除吗？")，会返回一个boolean值
+    如果用户点确定，会返回true
+    function del() {
+        if(window.confirm("亲，删除数据吗？")){
+            alert("正在删除。。。")
+        }
+    }
+
+如果当前窗口不是顶级窗口，就将当前窗口设置为顶级窗口
+    应用场景：一个用户登录时间超过后，会被断开登录，要求其重新登录，重新登陆的页面应该在最顶层
+    //如果当前窗口不是顶级窗口，就将当前窗口设置为顶级窗口
+    005页面
+    function top2() {
+        if(window.top!=window.self){
+            window.top.location=window.self.location
+        }
+    }
+    <input type="button" onclick="top2()" value="设置为顶级窗口"/>
+    004页面
+    <iframe src="005.html" width="300px" height="300px"></iframe>
+
+BOM中的history对象
+    前进直接使用a标签
+    后退使用window.history.back()或者使用window.history.go(-1),前进-1步，就是后退一步
+
+BOM操作地址栏对象(Location)
+    var locationObj = window.location
+    locationObj.href="http://www.keyi.world"
+    简写:
+    Window.location.href="http://www.baidu.com"
+    Window.location="http://www.baidu.com"
+    document.location.href="http://www.mi.com"
+    document.location="http://www.mi.com"
+
+    <script type="text/javascript">
+        function myBlog() {
+            document.location="http://www.keyi.world"
+
+        }
+    </script>
+    <input type="button" onclick="myBlog()" value="我的博客" />
+有哪些方法可以通过浏览器往服务器发送请求
+    1)a标签
+    2)form表单
+    3)window.open("http://www.keyi.world")
+    4)window.location="http://www.keyi.world"
+    5)document.location="http://www.keyi.world"
+    6)用户直接在地址栏中输入网址
+    以上方式均可携带数据给服务器，只有form表单提交的数据是动态的
+
+Json
+    1,什么是json,它的作用？
+        javascript object notation,简称json,(数据交换格式)
+        主要作用，一种标准的数据交换格式，特点体积小，易解析
+        实际开发中有两种数据交换格式：一种是json,一种是xml
+        xml体积大，解析麻烦，但语法严谨
+    定义：
+    var json对象名={
+        "属性名":属性值
+        "属性名":属性值
+        "属性名":属性值
+        "属性名":属性值
+        "属性名":属性值
+        。。。
+    }
+    //json对象
+    var jsonObj = {
+        "name":"小胖",
+        "age":20,
+        "sex":"女"
+    }
+    alert(jsonObj.name+","+jsonObj.age+","+jsonObj.sex)
+
+    //json数组
+    var arr = [
+        {"name":"王文瀚","age":20,"sex":"男"},
+        {"name":"小志","age":20,"sex":"男"},
+        {"name":"龚珍奇","age":20,"sex":"男"}
+    ]
+    for (let a of arr) {
+        alert(a.name+","+a.age+","+a.sex)
+    }
+
+    复杂的json
+    //设计json格式，用来描述整个班级中的每一个学生的信息以及总人数
+    <script type="text/javascript">
+        var students = {
+            "sum":3,
+            "student":[
+                {"name":"小胖","age":20,"sex":"男"},
+                {"name":"科一","age":22,"sex":"男"},
+                {"name":"老丁","age":22,"sex":"男"},
+            ]
+        }
+        for (let s of students.student) {
+            alert(s.name+"的年龄是"+s.age)
+        }
+        document.write("班级总人数：")
+        document.write(students.sum)
+    </script>
+
+    eval函数的作用：将字符串当做一段JS代码解释并执行，配合json可以实现前端和后端的数据交换
+    var fromJava = "{\"name\":\"小胖\",\"age\":20,\"sex\":\"男\"}" //java传过来的数据
+    window.eval("var jsonObj = "+fromJava)
+    alert(jsonObj.name)
+
+    面试题：在JS中[]和{}的区别
+        []是数组，{}是json
+    json是一种数据交换格式，在js中以对象的形式存在
+    访问json属性就和js对象访问属性一样有两种方式：.的形式和jsonObj["属性名"]
+
