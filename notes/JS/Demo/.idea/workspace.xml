@@ -24,7 +24,8 @@
     <property name="DefaultHtmlFileTemplate" value="HTML File" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="E:/第十二课" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
   <component name="RecentsManager">
@@ -34,6 +35,9 @@
     </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="8cfb9dd2-347c-4eb0-9f6a-715ce9e0ffcc" name="Default Changelist" comment="" />
@@ -51,17 +55,34 @@
       <workItem from="1604979891821" duration="3814000" />
       <workItem from="1604996271007" duration="12848000" />
       <workItem from="1605016116293" duration="635000" />
+      <workItem from="1605053343625" duration="4662000" />
+      <workItem from="1605060318503" duration="7631000" />
+      <workItem from="1605087610444" duration="667000" />
+      <workItem from="1605092681670" duration="127000" />
+      <workItem from="1605148940555" duration="538000" />
+      <workItem from="1605246102360" duration="664000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
   <component name="WindowStateProjectService">
     <state x="549" y="167" key="FileChooserDialogImpl" timestamp="1605000053252">
       <screen x="0" y="0" width="1536" height="824" />
     </state>
     <state x="549" y="167" key="FileChooserDialogImpl/0.0.1536.824@0.0.1536.824" timestamp="1605000053252" />
+    <state x="218" y="28" key="SettingsEditor" timestamp="1605149294577">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="218" y="28" key="SettingsEditor/0.0.1536.824@0.0.1536.824" timestamp="1605149294577" />
+    <state width="471" height="350" key="documentation.popup.size" timestamp="1605149385820">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state width="471" height="350" key="documentation.popup.size/0.0.1536.824@0.0.1536.824" timestamp="1605149385820" />
     <state x="477" y="20" width="602" height="804" key="find.popup" timestamp="1604970326137">
       <screen x="0" y="0" width="1536" height="824" />
     </state>
