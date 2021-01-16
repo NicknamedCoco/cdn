@@ -455,8 +455,7 @@
                 这个接口底层实现的是ApplicationContextAwareProcessor
 
     Profile：
-        spring为我
-们的可以根据当前环境，动态激活和切换一系列组件的功能
+        spring为我们的可以根据当前环境，动态激活和切换一系列组件的功能
         例如：在开发环境我们需要使用A数据源，在测试环境需要使用B数据源，在生产环境使用C数据源
         我们希望在不改变代码的情况下，达到切换组件的目的，就需要使用Profile
         而Profile功能由@Profile注解来实现
