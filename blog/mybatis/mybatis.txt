@@ -1,0 +1,919 @@
+mybatis-HelloWorld
+    1)导入依赖
+        <!--mybatis-->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.4.5</version>
+        </dependency>
+
+        <!--测试-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+        </dependency>
+
+        <!--日志包-->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+
+        <!--数据库jar包-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.19</version>
+        </dependency>
+
+        <!--druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.1.8</version>
+        </dependency>
+    2)配置mybatis核心配置文件，放在resource文件夹下
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE configuration
+                PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-config.dtd">
+        <configuration>
+            <environments default="development">
+                <environment id="development">
+                    <transactionManager type="JDBC"/>
+                    <dataSource type="POOLED">
+                        <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+                        <property name="url" value="jdbc:mysql://localhost:3306/wechat?serverTimezone=GMT&amp;
+                            useSSL=false&amp;characterEncoding=utf-8"/>
+                        <property name="username" value="root"/>
+                        <property name="password" value="123765"/>
+                    </dataSource>
+                </environment>
+            </environments>
+            <mappers>
+                <mapper resource="mapper/UserDaoMapper"/>
+            </mappers>
+        </configuration>
+    3)创建userDao接口，并写上接口方法，创建实体类
+        public interface UserDao {
+            List<User> findAll();
+        }
+        public class User {
+            private String username;
+            private String email;
+            private String password;
+            private Date birthday;
+        }
+    4)创建mapper映射文件，放在resource目录下的mapper目录下
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper
+                PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+        <!--
+            namespace:接口的全类名。world.keyi.dao.UserDao
+            id：接口中要被实现的方法名
+            resultType：接口方法的返回值类型，全类名
+        -->
+        <mapper namespace="world.keyi.dao.UserDao">
+            <select id="findAll" resultType="world.keyi.domain.User">
+            select * from tb_user
+            </select>
+        </mapper>
+    5)编写测试类
+        @Test
+        public void test(){
+            try {
+                String resource ="mybatis-config";
+                InputStream inputStream = Resources.getResourceAsStream(resource);
+                SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+                SqlSession sqlSession = sqlSessionFactory.openSession();
+                UserDao userDao = sqlSession.getMapper(UserDao.class);
+                List<User> users = userDao.findAll();
+                for (User user:users){
+                    System.out.println(user);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+全局配置文件
+    configuration（配置）
+        properties（属性）
+        settings（设置）
+        typeAliases（类型别名）
+        typeHandlers（类型处理器）
+        objectFactory（对象工厂）
+        plugins（插件）
+        environments（环境配置）
+            environment（环境变量）
+                transactionManager（事务管理器）
+                dataSource（数据源）
+        databaseIdProvider（数据库厂商标识）
+        mappers（映射器）
+
+    全局配置文件中各个配置标签是有先后顺序的，即上述顺序
+
+    properties（属性）
+        properties标签有resource属性和url属性，resource引用类路径下的资源文件，
+        url引用磁盘路径或者网络路径中的资源
+        <properties resource="druid.properties"/>
+    settings（设置）
+        这是mybatis中极为重要的调整设置，他们会改变mybatis的运行时行为，
+        如是否要缓存，是否懒加载，以及是否支持主键自动生成等等
+    typeAliases（类型别名）
+        <!--别名设置，为javaBean起别名-->
+        <typeAliases>
+            <!--
+                默认别名是类名(不区分大小写)，也可以使用alias属性指定别名
+                配置好后，在其他任意位置都可以写别名了
+            -->
+            <typeAlias type="world.keyi.domain.User"/>
+
+            <!--
+                批量起别名，name属性指定包的路径，表示为包中所有类起别名
+                批量起别名时，默认别名是类名，如果批量时想起别名，可以在类上设置@Alias注解，
+                表示为该类起别名
+            -->
+            <package name="world.keyi.domain"/>
+        </typeAliases>
+    typeHandlers（类型处理器）
+        preparedStatement在预编译设置值或者在获取值时，都需要指定数据的相应类型
+        例如ps.setString(1,"admin")，ps.setInt(2,"aaa@qq.com")
+        mybatis底层也是如此，而我们自定义的类型处理器则可以为类型做转换
+        自定义类继承TypeHandle接口或者BaseTypeHandle
+        typeHandlers标签就是用来指定自定义的类型处理器
+    <
+        插入一下：mybatis的四大对象
+            Executor,执行器，执行增删改查
+            ParameterHandler,参数处理器，为preparedStatement设置参数 调用不同的类型处理器去设置参数
+            ResultSetHandler,结果集处理器，负责将查询出来的结果集封装成指定的java对象
+            StatementHandler，相当于preparedStatement
+    >
+    environments（环境配置）
+        <!--配置环境变量-->
+        /*
+            default属性表示默认使用哪个环境
+            后来事务管理和数据源都交给spring做
+
+            type属性可以是自定义类，自定义连接池，即实现DataSourceFactory接口
+            返回自己创建的druidDataSource即可
+        */
+        <environments default="development">
+            <environment id="development">
+                <transactionManager type="JDBC"/>
+                <dataSource type="POOLED">
+                    <property name="driver" value="${jdbc.driver}"/>
+                    <property name="url" value="${jdbc.url}"/>
+                    <property name="username" value="${jdbc.username}"/>
+                    <property name="password" value="${jdbc.password}"/>
+                </dataSource>
+            </environment>
+        </environments>
+
+    databaseIdProvider（数据库厂商标识）
+        它的作用是mybatis用来考虑数据库移植性的
+        <!--数据库厂商标识-->
+        <databaseIdProvider type="DB_VENDOR">
+            <!--
+                name:数据库厂商标识，value属性表示给这个标识取别名
+                使用时：在mapper映射文件中select或其他sql标签中设置databaseid属性，
+                指定在哪个数据库时执行该sql语句，没有该属性表示，任何数据库都能执行
+                <select id="findAll" resultType="User">
+                    select * from tb_user
+                </select>
+                <select id="findAll" resultType="User" databaseId="oracle">
+                    select * from tb_user
+                </select>
+                sql执行匹配规则：如果能精确匹配就精确匹配，不能就执行没有设置databaseid属性的sql
+            -->
+            <property name="MYSQL" value="mysql"/>
+            <property name="ORACLE" value="oracle"/>
+            <property name="Sql Server" value="sqlServer"/>
+        </databaseIdProvider>
+    mappers（映射器）
+        <mappers>
+            <mapper resource="mapper/UserDaoMapper"/>
+            <!--
+                <mapper class=""/>
+                <mapper url=""/>
+                resource属性：从类路径下引入映射文件
+                url属性：从磁盘中或者网络中引用映射文件
+                class属性：写dao层接口的全类名，不过使用这种方式，
+                    需要将mapper映射文件放在和接口同包下，并且两个文件名字要相同
+                    你也可以直接在接口相应的方法上使用@Select注解等等，这样mybatis也能执行
+                    但是这种注解方式硬编码，不一定好
+
+                以上是单一文件注册，你也可以使用package标签批量注册
+                <package name="dao包类路径"/>，不过批量注册还是需要将mapper文件放在dao包中,并且名字要相同
+                如果你不想把resource下的mapper文件放到dao包中，还想使用批量注册，你可以在
+                mapper包下创建和dao包一样的路径，把mapper文件放在其中，(mapper映射文件还是要和文件名相同)
+                因为java包下和resource包最终都会合并，所以还是会和dao层接口文件放在一起
+            -->
+        </mappers>
+
+mapper映射文件
+    这个文件中能写的标签
+        cache：和缓存有关
+        cache-ref:和缓存有关
+        parameterMap：参数map，已经废弃，原本是用来复杂参数映射的
+        resultMap：结果映射，自定义结果集的封装规则
+        sql:抽取可重用sql
+    增删改标签中的属性
+        id：命名空间中唯一标识符
+        parameterType：传入参数的类型，可以不用写，mybatis的TypeHandle可以推断出来参数类型并自动设置
+        databaseId：表示当前sql语句是在哪个数据库中执行的
+        useGeneratedKeys：仅对insert和update有用，这会令mybatis使用jdbc的getGeneratedKeys方法来
+            取出由数据库内部生成的主键，默认值：false
+        keyProperty：仅对insert和update有用，唯一标记一个属性，Mybatis会通过getGeneratedKeys的返回值
+            或者通过insert语句的selectKey子元素设置它的键值，默认：unset
+            以上两个属性是用来获取插入数据后的自增id的：
+            使用场景：插入或更新时：自动将自增id赋值给传入的User对象的id属性
+            使用方法：将useGeneratedKeys属性设置为true，表示告诉mybatis取出刚刚插入数据的自增后的id值
+                将keyProperty属性值设置为User对象的id值，表示告诉mybatis把刚刚获取的id值赋值给user对象的id属性
+                <insert id="addUser" useGeneratedKeys="true" keyProperty="id">
+                    insert into tb_user values (#{id},#{username},#{password},#{email},#{birthday})
+                </insert>
+            以上方式需要数据库有自增字段，如果没有也可以在insert或者update标签中配置selectKey标签
+            通过查询语句来获取id属性，并通过keyProperty属性赋值给user对象id属性，order属性表示是在sql语句之前或者之后运行
+                <insert id="addUser">
+                    <selectKey keyProperty="id" resultType="integer" order="BEFORE">
+                        select max(id)+1 from tb_user   //这句话的意思是先执行该sql语句，将查询到的id+1，并赋值给User对象的id属性
+                    </selectKey>                        //再执行插入语句
+                    insert into tb_user values (#{id},#{username},#{password},#{email},#{birthday})
+                </insert>
+    能传入的参数类型，参数传递：
+        1)单个参数：
+            当传入的是单个参数且参数是基本类型时，取值的#{随便写}，mybatis默认是传入什么参数，就取那个参数的值
+            当传入pojo时
+        2)多个参数：
+            例如通过id和username两个属性查询用户数据时，取值直接使用#{id},#{username}是取不到值得，
+                需要使用#{arg0},#{arg1}的方式取我们传入的值，或者使用#{param1},#{param2}的方式取值
+                例如，mapper文件中sql语句，
+                    <select id="findUserByUsernameAndEmail" resultType="User">
+                        select * from tb_user where username=#{arg0} and email=#{arg1}
+                    </select>
+                测试时：
+                    public void findUserByUsernameAndEmail(){
+                        SqlSession sqlSession = sqlSessionFactory.openSession(flag);
+                        UserDao userDao = sqlSession.getMapper(UserDao.class);
+                        User user = userDao.findUserByUsernameAndEmail("风吹屁屁凉","506579631@qq.com");
+                        System.out.println(user);
+                    }
+                查询时就能查出该条数据
+                如果想使用指定属性名来取值，例如#{id},#{username}，可以在接口方法上使用@Param注解指定使用查询时所使用的参数
+                    接口方法上：
+                        User findUserByUsernameAndEmail(@Param("username") String username, @Param("email") String email);
+                    mapper文件的sql语句
+                        <select id="findUserByUsernameAndEmail" resultType="User">
+                            select * from tb_user where username=#{username} and email=#{email}
+                        </select>
+                    测试语句还是一样的，同样能查询出对象，这种注解方式最为推荐
+        3)传入POJO
+            在sql中，mybatis取值时直接使用#{对象的属性名}即可
+                <update id="updateUser">
+                    update tb_user set username = #{username},password = #{password},birthday=#{birthday}
+                    where email=#{email}
+                </update>
+        4)传入map
+            略
+        扩展，当传入多个参数时，mybatis会自动将参数封装进map中，
+            单个参数时，取值#{随便取}，
+            多个参数时，map的key是arg0，arg1或者param1，param2
+            通过@Param("属性名")标注在接口方法参数上，指定对应的key值，取值时则#{指定的属性名}即可取出
+            传入pojo时，mybatis自动将该属性封装进map中，所以直接使用#{pojo属性名}即可取出
+
+            如果接口中方法为method(Integer id,String username,User user)
+            我sql语句需要取对应的参数应该这么取，使用@Param取id值，即@Param("id")Integer id,则#{id}可以取出来
+            username参数应该使用#{Param2}可以取出参数，想取出user对象的email参数，则需要#{param3.email}才能取出email值
+
+            取值时#{}，可以设置一些规则，最常用的是#{id,jdbcType="INT"},表示该数据类型在数据库里面的类型是INTEGER
+                使用场景：默认可以不使用，但如果id是包装类型且为NULL时，mysql可以插入null值，而oracle不知道null是什么类型
+                通过jdbcType属性可以指定该值在数据库中的类型
+
+            面试常问：#{}和${}取值有什么不同？
+                #{}：是参数预编译的方式,参数的位置都是使用？代替，参数都是后来预编译时设置进去的
+                ${}：不是参数预编译，而是参数是直接与sql语句进行拼串，不安全，有sql注入
+            那么${}就没有使用场景了嘛？
+                不是的，sql语句中只有参数位置是支持预编译的，我们可以使用${}来动态传入数据库表名
+                一般都是用#{},在不支持预编译的位置可以使用${}取值
+
+接口查询方法返回map类型
+    1)如果查询一条数据，返回值类型是map，则mybatis会将列名作为key，列名对应的值作为value进行封装返回
+        例如map中：username='风吹屁屁凉', email='506579631@qq.com', password='123765'
+        接口方法：
+            /*查询一条数据，返回值类型为map*/
+            Map<String,Object> findUserByUsernameReturnMap(String username);
+        mapper的sql语句
+            <select id="findUserByUsernameReturnMap" resultType="map">
+                select * from tb_user where username=#{username}
+            </select>
+        测试
+            Map<String,Object> map = userDao.findUserByUsernameReturnMap("壹万");
+            System.out.println(map);
+            key为该条数据的列名，value是这条数据对应属性值
+        查询结果
+            {birthday=2021-03-10, password=778, email=8008208820@qq.com, username=壹万}
+    2)如果查询多条数据，返回值类型是map中的元素类型，User
+        接口方法
+            /*
+                查询多条数据，返回类型为map
+                MapKey注解用于指定数据库中返回数据中的哪一列(字段)作为map的key
+            */
+            @MapKey("username")
+            Map<String,User> findAllReturnMap();
+        mapper中的sql语句
+            <!--
+                查询多条数据，并将多条数据封装进map返回
+                resultType：应该写的是map中数据的类型，而不是map
+            -->
+            <select id="findAllReturnMap" resultType="User">
+                select * from tb_user
+            </select>
+        测试
+            Map<String,User> map = userDao.findAllReturnMap();
+            System.out.println(map);
+        测试结果
+            {万一=User{username='万一', email='506579631@qq.com', password='123765', birthday=Wed Mar 10 08:00:00 CST 2021},
+            风吹屁屁凉=User{username='风吹屁屁凉', email='506579631@qq.com', password='123765', birthday=Mon Jun 29 08:00:00 CST 2020},
+            壹万=User{username='壹万', email='8008208820@qq.com', password='778', birthday=Wed Mar 10 08:00:00 CST 2021},
+            两只穿云箭=User{username='两只穿云箭', email='1304552164@qq.com', password='654321', birthday=Wed Mar 10 08:00:00 CST 2021}}
+
+默认mybatis自动封装结果集
+    1)默认自动封装结果集需要实体类中的属性名和数据库中的字段名要一一对应，不区分大小写
+    2)如果不对应
+        1)开启驼峰命名法,但是需要满足驼峰命名法的规则，即实体类中aaaBbb，数据库字段可以是aaa_bbb,其中_表示大写的意思
+        2)如果实体类中属性名和数据库字段并不对应，而且也不满足驼峰命名法，
+            2.1)可以通过sql起别名的方式进行封装
+                假如实体类中属性为id,name,age,gender,数据库字段为id,cname,cage,cgender,
+                则sql语句可以这样写，也可以封装数据到对象中：select id,cname name,cage age,cgender gender from tb_user where id=#{}
+            2.2)我们也可以自定义结果集，
+                自己定义每一列数据和javaBean的映射规则
+                <!--
+                    自定义结果映射，封装结果集
+                    type属性：指定查询出的数据要封装的类型
+                    id属性：唯一标识
+                -->
+                <resultMap id="userResultMap" type="world.keyi.domain.User">
+                    <!--
+                        id标签：对表中主键的映射
+                        result标签:对表中非主键的映射
+                        property属性：对应实体类中的属性
+                        column属性：对应数据库表中的字段
+                        表示：将数据库表中的指定的column字段，封装到实体类中的指定的property属性中
+                    -->
+                    <id property="id" column="id"></id>
+                    <result property="username" column="username"></result>
+                    ...
+                </resultMap>
+                设置好映射关系后，还需要在<select>标签中设置resultMap属性，如果不设置，mybatis会采用默认的映射规则，
+                要求你实体类中属性和数据库表中的字段一一对应,所以使用resultType是使用默认封装规则，使用resultMap是使用自定义封装规则
+                <select id="findAll"  resultMap="userResultMap">
+                    select * from tb_user
+                </select>
+
+多表联合查询
+    关联关系
+        一对多，多对一：在多的一方建立外键，
+            实体类中，如果想通过一的一方(lock)查询多的一方(key)，则在一的实体类中设置List集合(在lock类中设置list<key>集合属性)
+            实体类中，如果想通过多的一方(key)查询一的一方(lock),则在多的一方实体类中设置一的一方(lock)的引用(在key类中设置lock属性)
+        多对多，建立中间表，使用两个表的主键作为中间表的联合主键
+    mybatis封装联合查询后的结果
+        1)使用级联属性封装联合查询出的结果
+            1.1)key实体类和lock实体类
+                public class Key {
+                    private Integer id;
+                    private String keyName;
+                    private Lock lock;
+                }
+                public class Lock {
+                    private Integer id;
+                    private String lockName;
+                }
+            1.2)mapper文件配置自定义查询规则，sql语句
+                <!--自定义封装，使用级联属性封装联合查询出来的结果-->
+                <resultMap id="table_key" type="world.keyi.domain.Key">
+                    <id property="id" column="id"/>
+                    <result property="keyName" column="key_name"/>
+                    <result property="lock.id" column="lid"/>
+                    <result property="lock.lockName" column="lock_name"/>
+                </resultMap>
+
+                <!--查询key时将lock信息也查询出来并封装-->
+                <select id="getKeyById"  resultMap="table_key">
+                   SELECT k.id,k.`key_name`,k.`lock_id`,l.`id` lid,l.`lock_name` FROM tb_key k
+                        LEFT JOIN tb_lock l ON k.id=l.id
+                        WHERE k.id=#{id}
+                </select>
+        2)使用association标签封装联合查询后的结果
+            <!--自定义封装规则，使用association标签封装联合查询后的结果-->
+            <resultMap id="table_key" type="world.keyi.domain.Key">
+                <id property="id" column="id"/>
+                <result property="keyName" column="key_name"/>
+                <!--
+                    association标签中
+                    property属性指定Key实体类中未完成的属性，即引用对象，lock属性
+                    javaType：指定未完成的属性的类型，即Lock类的全类名
+
+                    而id标签和result标签的property属性表示Lock类中的属性
+                    而column属性表示查询结果中的列名
+
+                    从sql语句中可以看出，本次查询结果的列名为：id,key_name,lock_id,lid,lock_name
+
+                -->
+                <association property="lock" javaType="world.keyi.domain.Lock">
+                    <id property="id" column="lid"/>
+                    <result property="lockName" column="lock_name"/>
+                </association>
+            </resultMap>
+        3)使用collection标签封装联合查询后的结果
+            自定义封装规则中，如果实体类引用的属性是另一个实体类，使用association标签封装
+            自定义封装规则中，如果实体类引用的属性是List集合，使用collection标签封装
+            本例中，lock实体类引用key类的集合属性
+                public class Lock {
+                    private Integer id;
+                    private String lockName;
+                    private List<Key> keys;
+                }
+            则，自定义封装规则如下：
+                <resultMap id="table_lock" type="world.keyi.domain.Lock">
+                    <id property="id" column="id"/>
+                    <result property="lockName" column="lock_name"/>
+                    <!--
+                        定义集合属性的封装
+                        property：指定lock类中尚未封装的属性，即keys
+                        ofType:指定集合中元素的类型
+                    -->
+                    <collection property="keys" ofType="world.keyi.domain.Key">
+                        <id property="id" column="kid"/>
+                        <result property="keyName" column="key_name"/>
+                    </collection>
+                </resultMap>
+
+        4)分步查询，我们在查Key的时候，sql语句写的是左连接，查出指定的key的信息和clock的信息，
+            然后再使用association标签给key的所有属性全部封装上.
+            实际上是分步查询的步骤是，先查询出key的数据，即，id，key_name,lock_id的数据，将id，key_name封装进key对象中
+            再通过mybatis的方式，根据lock_id再去数据库查lock的信息，并将lock信息封装进key对象中
+            4.1)keyDao及lockDao接口
+                public interface KeyDao {
+                    Key getKeyById(Integer id);
+                    Key getKeyByIdSimple(Integer id);
+                }
+                public interface LockDao {
+                    Lock getLockById(Integer id);
+                    Lock getLockByIdSimple(Integer id);
+                }
+            4.2)KeyDaoMapper及LockDaoMapper映射文件
+                //KeyDaoMapper
+                <mapper namespace="world.keyi.dao.KeyDao">
+                    <!--自定义封装规则，使用mybatis提供的分步查询方式，封装lock的信息-->
+                    <resultMap id="table_key_simple" type="world.keyi.domain.Key">
+                        <id property="id" column="id"/>
+                        <result property="keyName" column="key_name"/>
+                        /*
+                            select属性表示根据lock_id数据，作为参数，调用select指定的sql语句再去数据库中查询lock的信息
+                            select的值表示调用world.keyi.dao.LockDao接口的getLockByIdSimple方法，
+                            而getLockByIdSimple则是LockDaoMapper下的select的id
+                        */
+                        <association property="lock" select="world.keyi.dao.LockDao.getLockByIdSimple" column="lock_id"/>
+                        /*
+                            如果你要传多个值，column中可以这样传column={"id=lock_id,username=username"}
+                            通过键值对的方式，调用其他sql时，向那个sql传值，key(id)指的是取值时用的#{}，value(lock_id)指的是从数据库查出来的值
+                        */
+                    </resultMap>
+
+                    <select id="getKeyByIdSimple" resultMap="table_key_simple">
+                        SELECT k.`id`,k.`key_name`,k.`lock_id` FROM tb_key k WHERE k.`id`=#{id}
+                    </select>
+                </mapper>
+                //LockDaoMapper
+                <mapper namespace="world.keyi.dao.LockDao">
+                    <resultMap id="table_lock_simple" type="world.keyi.domain.Lock">
+                        <id property="id" column="id"/>
+                        <result property="lockName" column="lock_Name"/>
+                    </resultMap>
+                    //这里因为数据库表字段lock_name和实体类lockName不对应，所以用resultMap，其实可以用resultType默认自动封装
+                    <select id="getLockByIdSimple" resultMap="table_lock_simple">
+                        select * from tb_lock where id =#{id}
+                    </select>
+                </mapper>
+            4.3)测试
+                /*
+                * 分步查询,先通过getKeyByIdSimple方法查出id,key_name,lock_id，将前两个数据封装进key对象中
+                * 再调用getLockByIdSimple方法，将lock_id作为参数，查出lock的信息，最后将lock信息封装金key对象
+                * */
+                public void getKeyByIdSimple(){
+                    SqlSession sqlSession = sqlSessionFactory.openSession();
+                    KeyDao keyDao = sqlSession.getMapper(KeyDao.class);
+                    Key key = keyDao.getKeyByIdSimple(1);
+                    System.out.println(key);
+                }
+            分步查询有一项缺点：例如我每次只需要key对象的keyName的值，但是因为配置了分步查询，底层还是会发出两条sql
+            语句把lock信息查出来，这样会造成数据库性能下降
+                解决办法：
+                    1)按需加载，指的是，需要lock信息的时候再去数据库中查询，
+                        通过在mybatis-config.xml文件中配置延迟加载(不着急查询关联的对象，需要时再去数据库中查)
+                        <settings>
+                            <!--开启延迟加载开关-->
+                            <setting name="lazyLoadingEnabled" value="true"/>
+                            <!--开启属性按需加载-->
+                            <setting name="aggressiveLazyLoading" value="false"/>
+                        </settings>
+                    2)你也可以在association标签中配置fetchType属性，取值Lazy或者eager，这种方式也可以
+                        实现按需加载，如果配置这种方式，fetchType值为eager,表示及时加载，并且还开启了上面
+                        在mybatis核心配置文件中的按需加载，那么这种association方式会覆盖配置文件中的配置
+                        <association property="lock" fetchType="lazy"
+                            select="world.keyi.dao.LockDao.getLockByIdSimple" column="lock_id"/>
+
+
+动态sql
+    1，if标签和where标签，拼接sql字符串
+        1)userDao接口
+            public interface UserDao {
+                /*动态sql查询数据*/
+                User getUserByCondition(User user);
+            }
+        2)userDaoMapper映射文件
+            <mapper namespace="world.keyi.dao.UserDao">
+                <resultMap id="user" type="world.keyi.domain.User">
+                    <!--
+                        id标签：对表中主键的映射
+                        result标签:对表中非主键的映射
+                        property属性：对应实体类中的属性
+                        column属性：对应数据库表中的字段
+                        表示：将数据库表中的指定的column字段，封装到实体类中的指定的property属性中
+                    -->
+                    <id property="username" column="username"/>
+                    <result property="email" column="email"/>
+                    <result property="password" column="password"/>
+                    <result property="birthday" column="birthday"/>
+                </resultMap>
+
+                <!--
+                    动态SQL
+                    if标签判断传递的user对象中有无对应的属性，如果有则动态sql拼接，如果没有则pass掉
+                    where标签能消除掉前面多余的and字符串(例如如果没带username值得话，就会多出一个and，where标签就能去除掉)
+                -->
+                <select id="getUserByCondition" resultMap="user">
+                    select * from tb_user
+                    <where>
+                        <if test="username!=null and username!=''">
+                            username = #{username}
+                        </if>
+                        <if test="password!=null">
+                            and password=#{password}
+                        </if>
+                        <if test="email!=null">
+                            and email=#{email}
+                        </if>
+                    </where>
+                </select>
+            </mapper>
+        3)测试
+            /*
+                动态sql，按照条件查询user数据
+            */
+            public void getUserByCondition(){
+                SqlSession sqlSession = sqlSessionFactory.openSession();
+                UserDao userDao = sqlSession.getMapper(UserDao.class);
+                User user = new User();
+                //user.setUsername("万一");
+                user.setPassword("123765");
+                user.setEmail("506579631@qq.com");
+                User userByCondition = userDao.getUserByCondition(user);
+                System.out.println(userByCondition);
+            }
+    2，foreach标签
+        当接口方法参数为list集合时，sql的编写需要通过遍历取出集合中的元素，进行sql拼接
+        1)userDao接口方法
+            public interface UserDao {
+                /*传递list集合，获取满足条件的多条数据*/
+                List<User> getUsersByCondition(@Param("list") List<String> list);
+            }
+        2)userDaoMapper映射文件
+            <mapper namespace="world.keyi.dao.UserDao">
+                <!--
+                    使用foreach标签，遍历传递过来的list集合
+                    collection：指定要遍历集合的key，在接口方法中已经指定使用"list"取出list集合:
+                        List<User> getUsersByCondition(@Param("list") List<String> list);
+                    close:以什么结束，作为sql语句拼接in语句的话，in (?,?,?),当然是以)结束
+                    open:以什么开始，同上
+                    item：指的是遍历集合中的每一个元素,如果list中元素是对象，则取对象的属性就是，item的值.对象属性值
+                    separator:每次遍历的元素的分隔符
+                    index：
+                        如果遍历的是一个list集合，index表示的是当前的索引
+                        如果遍历的是一个map集合，index表示的是当前遍历的元素的key
+
+                -->
+                <select id="getUsersByCondition" resultMap="user">
+                    select * from tb_user where username in
+                    <foreach collection="list" item="username" separator="," index="i" open="(" close=")">
+                        #{username}
+                    </foreach>
+                </select>
+            </mapper>
+        3)测试
+            public void getUsersByCondition(){
+                SqlSession sqlSession = sqlSessionFactory.openSession();
+                UserDao userDao = sqlSession.getMapper(UserDao.class);
+                ArrayList<String> strings = new ArrayList<>();
+                strings.add("万一");
+                strings.add("壹万");
+                List<User> users = userDao.getUsersByCondition(strings);
+                System.out.println(users);
+            }
+    3，choose标签，这个标签相当于switch分支，或者是if-else条件，与if不同的是，如果满足if条件，则sql语句都会拼接
+        而choose标签是如果满足when其中一个标签，则只会拼接一个sql片段，如果其中的when标签都不满足，则拼接其中的otherwise标签
+        在下面例子中，只会匹配一个sql片段，就像if-else语句
+        <choose>
+            <when test="username!=null">
+                username=#{username}
+            </when>
+            <when test="email!=null">
+                email=#{email}
+            </when>
+            <otherwise></otherwise>
+        </choose>
+    4，set标签，和where标签类似，where标签的作用是去除多余的and字符串，而set标签的作用是去除多余的逗号,
+        <update id="">
+            update tb_user set
+            <if test="username!=null">
+                username=#{username},
+            </if>
+            <if test="password!=null">
+                password=#{password},
+            </if>
+            <if test="email!=null">
+                email=#{email}
+            </if>
+            where id=#{id}
+        </update>
+        上面这种方式就是动态sql，if标签使用在update语句上，但是如果只有username!=null满足条件，其他if都不满足
+        则sql就会产生多余的逗号，只需要改成set标签，就可以去除多余的逗号
+        <update id="">
+            update tb_user
+            <set>
+                <if test="username!=null">
+                    username=#{username},
+                </if>
+                <if test="password!=null">
+                    password=#{password},
+                </if>
+                <if test="email!=null">
+                    email=#{email}
+                </if>
+            </set>
+            <where>
+                id=#{id}
+            </where>
+        </update>
+    5，<include>标签
+        include标签需要跟外部的sql标签配合一起使用，抽取可重用的sql语句
+        例如：
+            mapper标签下配置sql标签：<sql id="selectSql">select * from </sql>
+            使用时:
+                <!--查询所有用户-->
+                <select id="findAll" resultType="User">
+                    <include refid="selectSql"/>
+                    tb_user
+                </select>
+            以上只是简单实例，表示该标签的用法
+    6，补充：在test中填的字符串是OGNL表达式的写法，其中不仅能使用对象的属性做判断
+        还能使用额外的两个属性，是来自mybatis本身提供的两个属性
+        1)_parameter:代表传来的参数
+            - 如果传了单个参数，_parameter就代表这个参数
+            - 如果传了多个参数，_parameter就代表多个参数集合起来的map(多个参数自动封装为map集合)
+            使用方式：
+                <if test="_parameter!=null"></if>
+                表示传递过来的参数不能为空
+        2)_databaseId：数据库标识，和之前的在select，update标签中使用的databaseId属性指定mysql，或者oracle标识一样的
+            前提是：使用databaseId属性之前需要在mybatis核心文件中配置databaseIdProvider
+            使用方式：
+                <select id="findAll" resultType="User">
+                    <if test="_databaseId=='oracle'">
+                        select * from tb_user
+                    </if>
+                </select>
+            表示该条sql，只有在mysql数据库中才能执行
+
+缓存机制
+    Mybatis缓存机制：Map，能保存查询出的一些数据
+        一级缓存：线程级别的缓存，本地缓存，SqlSession级别的缓存
+        二级缓存：全局范围的缓存，除过当前线程SqlSession能用外，其他SqlSession也能使用
+    一级缓存：SqlSession级别的缓存，默认存在
+        机制：只要之前查询过的数据，mybatis就会保存在一个缓存中(Map)，下次获取直接从缓存中拿
+                也就是说同一个SqlSession查出来的对象都会放到同一个map中
+        一级缓存失效的几种情况
+            1)不同的SqlSession，使用不同的一级缓存，每个SqlSession都会一个自己的map
+            2)同一个方法，不同的参数，由于之前可能没查过，所以还会发新的sql
+            3)在这个SqlSession期间执行上任何一次增删改操作，增删改操作会把缓存清空
+            4)手动清空缓存，openSession.clearCache
+            每次查询，先看一级缓存中有没有需要的数据，如果没有再发送sql查询数据库
+    二级缓存：全局作用域缓存，namespace级别的缓存，二级缓存默认不开启，需要手动配置，Mybatis提供二级缓存的接口及其实现，
+            缓存实现要求POJO实现Serializable接口，二级缓存在SqlSession关闭或者提交之后才会生效
+            使用步骤:
+                1)在全局配置文件中开启二级缓存
+                    <!--开启二级缓存-->
+                    <settings>
+                        <setting name="cacheEnabled" value="true"/>
+                    </settings>
+                2)配置某个daoMapper映射文件，让其使用二级缓存，在mapper文件中配置
+                    <cache></cache>
+                3)POJO类需要实现Serializable接口
+    补充：
+        1，不会出现一级缓存和二级缓存中有同一个数据
+            二级缓存：一级缓存关闭了或提交之后就有数据
+            一级缓存：二级缓存中没有此数据，就会看一级缓存，一级缓存中没有就去数据库中查，
+                    数据库查询后的结果放在一级缓存中。
+        2，任何时候都是先看二级缓存，再看一级缓存，如果大家都没有就去查询数据库(每一个Dao都有它自己的二级缓存)
+    缓存有关的设置：
+        1)全局setting的cacheEnable：配置二级缓存的开关
+        2)select标签的useCache属性，配置这个select是否使用二级缓存，一级缓存是一直使用的
+        3)增删改标签的flushCache属性，增删改标签的flushCache默认为true，会同时清空一级缓存和二级缓存
+            查询标签的flushCache属性默认为false
+        4)SqlSession.clearCache(),只是用来清除一级缓存
+    二级缓存也只是简单的HashMap结构，以后肯定是使用第三方的缓存框架redis
+    mybatis整合第三方缓存框架之ehcache,使用步骤如下：
+        1)导依赖
+        2)编写ehcache的配置文件
+        3)cache标签引用第三方cache接口实现，<cache type="xxx"></cache>
+
+SSM整合
+    1)导包
+        springmvc的，spring的，mybatis的，hibernate-validator数据校验的，文件上传下载的，Aop的，jstl的
+        数据库的，日志的，测试的，jackson的，druid数据源的
+    2)编写配置文件
+        2.1)web.xml文件
+            配置spring容器监听器，配置DispatcherServlet，配置字符编码过滤器CharacterEncodingFilter，
+            配置请求方式转换器HiddenHttpMethodFilter
+        2.2)springMVC配置文件
+            配置包扫描，静态资源处理器，注解驱动，视图解析器，文件上传解析器等
+        2.3)spring配置文件
+            配置包扫描，数据源，事务控制DataSourceTransactionManagement
+    3)spring整合mybatis
+        3.1)导入整合包(能将dao的实现加入到容器中)，mybatis-spring,jar包
+        3.2)在spring配置文件中，注册整合接口：SqlSessionFactoryBean
+            这个类实现了spring的FactoryBean，返回SqlSessionFactory
+            作用是：可以根据配置文件得到SqlSessionFactory
+            <bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+                //指定mybatis核心配置文件位置
+                <property name="configLocation" value="classpath:mybatis核心配置文件位置"/>
+                //指定要使用的数据源
+                <property name="dataSource" ref="数据源"/>
+                //指定mapper映射文件的位置
+                <property name="mapperLocations" value="classpath:mybatis/mapper/*.xml"/>
+            </bean>
+            我们还要把每一个dao接口的实现加入到ioc容器中
+            <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+                //指定dao接口所在的包,会自动扫描dao包下的接口，把dao接口实现都加入到spring容器中
+                <property name="basePackage" value="world.keyi.world.dao"/>
+            </bean>
+            或者你还可以使用名称空间的方式
+            <mybatis-spring:scan base-package="dao接口路径"/>
+
+MBG，mybatis Generator：逆向工程，mybatis提供的代码生成器
+    通过数据库表建立dao接口，daoMapper映射文件，javaBean
+    使用步骤：
+        1)导包
+            <!-- https://mvnrepository.com/artifact/org.mybatis.generator/mybatis-generator-core -->
+            <dependency>
+                <groupId>org.mybatis.generator</groupId>
+                <artifactId>mybatis-generator-core</artifactId>
+                <version>1.3.7</version>
+            </dependency>
+
+        2)写mybatis-generator的配置文件
+            <jdbcConnection>标签连接数据库
+            <javaModelGenerator>标签生成pojo
+                targetPackage属性：生成的pojo放在哪个包
+                targetProject属性：放在哪个工程下，.\src代表本项目的src下
+            <sqlMapGenerator>标签生成sql映射文件，指定daoMapper映射文件生成的位置
+            <javaClientGenerator>标签生成dao接口的
+            <table>标签，指定要生成哪个数据表
+                tableName属性：表名
+                domainObjectName属性：这个表对应的对象名
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE generatorConfiguration
+              PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+              "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+            <generatorConfiguration>
+              <classPathEntry location="/Program Files/IBM/SQLLIB/java/db2java.zip" />
+              <context id="DB2Tables" targetRuntime="MyBatis3">
+                <jdbcConnection driverClass="COM.ibm.db2.jdbc.app.DB2Driver"
+                    connectionURL="jdbc:db2:TEST"
+                    userId="db2admin"
+                    password="db2admin">
+                </jdbcConnection>
+
+                <javaTypeResolver >
+                  <property name="forceBigDecimals" value="false" />
+                </javaTypeResolver>
+
+                <javaModelGenerator targetPackage="test.model" targetProject=".\src">
+                  <property name="enableSubPackages" value="true" />
+                  <property name="trimStrings" value="true" />
+                </javaModelGenerator>
+
+                <sqlMapGenerator targetPackage="test.xml"  targetProject="\MBGTestProject\src">
+                  <property name="enableSubPackages" value="true" />
+                </sqlMapGenerator>
+
+                <javaClientGenerator type="XMLMAPPER" targetPackage="test.dao"  targetProject=".\src">
+                  <property name="enableSubPackages" value="true" />
+                </javaClientGenerator>
+
+                //数据库表名对应pojo类名
+                <table schema="DB2ADMIN" tableName="ALLTYPES" domainObjectName="Customer" ></table>
+                <table schema="DB2ADMIN" tableName="ALLTYPES" domainObjectName="Customer" ></table>
+
+              </context>
+            </generatorConfiguration>
+        3)在官网拷贝代码，修改配置文件位置，直接运行
+            List<String> warnings = new ArrayList<String>();
+            boolean overwrite = true;
+            //修改配置文件名
+            File configFile = new File("generatorConfig.xml");
+            ConfigurationParser cp = new ConfigurationParser(warnings);
+            Configuration config = cp.parseConfiguration(configFile);
+            DefaultShellCallback callback = new DefaultShellCallback(overwrite);
+            MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config, callback, warnings);
+            myBatisGenerator.generate(null);
+
+PageHelper插件分页
+    1)导包
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper</artifactId>
+            <version>5.2.0</version>
+        </dependency>
+    2)在mybatis核心配置文件中添加插件
+        <!--
+            plugins在配置文件中的位置必须符合要求，否则会报错，顺序如下:
+            properties?, settings?,
+            typeAliases?, typeHandlers?,
+            objectFactory?,objectWrapperFactory?,
+            plugins?,
+            environments?, databaseIdProvider?, mappers?
+        -->
+        <plugins>
+            <!-- com.github.pagehelper为PageHelper类所在包名 -->
+            <plugin interceptor="com.github.pagehelper.PageInterceptor">
+                <!-- 使用下面的方式配置参数，后面会有所有的参数介绍 -->
+                <property name="param1" value="value1"/>
+        	</plugin>
+        </plugins>
+        如果是与spring整合了，则配置插件方式如下：
+            <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+              <!-- 注意其他配置 -->
+              <property name="plugins">
+                <array>
+                  <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                      <!--使用下面的方式配置参数，一行配置一个 -->
+                      <value>
+                        params=value1
+                      </value>
+                    </property>
+                  </bean>
+                </array>
+              </property>
+            </bean>
+    3)在controller中的控制器方法中，在调用userService.queryAll()方法之前，加上
+        //在controller紧跟查询方法，就是分页查询
+        //第一个参数表示从哪里开始，第二个参数表示查一次返回几条数据
+        //第一个参数，可以从前端动态获取，例如：参数名为pn
+        PageHelper.startPage(1, 10);
+        List<User> users = userService.queryAll();
+
+        //我们还可以使用查询结果获得更多的信息，将查询结果使用PageInfo类包装即可
+        PageInfo<Teacher> info =  new PageInfo(list);
+        info.getPageNum()，获取当前页码
+        info.getPages()，获取总页码
+        info.getTotal()，获取总记录数
+        info.getSize()，获取当前页有几条记录
+        info.getPageSize()，获取一次查询多少条记录
+        info.getPrePage()，获取前一页数据
+        info.getNextPage()，获取后一页数据
+        info.getList()，拿到查询结果，从包装中取出list数据
+
+        //使用连续分页，包装PageInfo时还可以指定一个int参数，表示连续分页的数量
+        PageInfo<Teacher> info =  new PageInfo(list,6);
+        info.getNavigatePageNums()，获取连续分页的页码
+        前端jsp页面通过${info.navigatePageNums}得到int数组，可以使用c:foreach遍历数组
+        <c:foreach items="${info.navigatePageNums}" var="num">
+            <a href="getall?pn=${num}">${num}</a>
+        </c:foreach>
+    官方网址访问：https://github.com/pagehelper/Mybatis-PageHelper/blob/master/wikis/zh/HowToUse.md
+
+
+
