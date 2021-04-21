@@ -1,0 +1,1366 @@
+依赖管理
+    springboot的parent标签做依赖管理，负责指定版本号，继承的子项目无需再写版本号
+    如果想指定版本号，可配置properties标签指定版本号，
+    <parent>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-parent</artifactId>
+      <version>2.4.3</version>
+      <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+默认的包结构
+    以前整合ssm时需要扫描包路径，将组件添加进容器中，现在springboot默认扫描boot包下的所有文件
+    如果想改变包扫描路径，可以给@SpringBootApplication注解添加scanBasePackages属性
+    @SpringBootApplication(scanBasePackages = "")
+    你也可以写成以下形式：
+        @SpringBootConfiguration
+        @EnableAutoConfiguration
+        @ComponentScan("world.keyi")
+容器功能
+    1，组件添加
+        1.1)@Configuration
+            - 将@Configuration注解标注在自定义类上，表示该类是配置类，在其中可以使用@Bean注解为容器注册组件
+                并且本身的自定义类也会被作为组件注册进容器中
+            - 配置类作为组件注册到容器中时，在容器中保存的对象是被spring容器增强的代理类，通过代理类调用类中注册组件的方法
+                获得的对象都是从容器中获取的，也就是获得的对象全部是单实例，这是默认情况下
+            - 我们也可以指定@Configuration中proxyBeanMethods属性为false，默认是true，当该属性为false时，配置类在
+                容器中保存的就是该对象本身，并不是代理类，使用配置类对象调用类中注册组件的方法获取的对象并不是单实例的，
+                也就是说，这种方式获得的对象是多实例的
+            - @Configuration中proxyBeanMethods属性为false时，称为lite模式，在lite下，外界调用@Bean标注的方法不会检查
+                该组件在容器中是否存在，而是直接创建对象返回，所以运行速度较快
+            - 当proxyBeanMethods属性为true时，称为full模式，当外界调用@Bean标注的方法获取对象时，会检查容器中是否存在该对象
+                如果存在，则直接返回对象，也就是说，所获得对象是单实例的，这种模式下，运行较慢，但解决了组件依赖
+            - 当我们只是给容器中注册组件，其他组件并不依赖该组件，我们就可将proxyBeanMethods属性调为false
+                当我们注册的组件，在其他组件中仍然需要，为了保证依赖的组件仍然是容器中的同一个对象，我们一般将proxyBeanMethods属性调为true
+        1.2)@Bean,@Component,@Controller,@Service,@Repository
+        1.3)@ComponentScan,@Import
+        1.4)@Conditional
+            条件装配，满足Conditional指定的条件，则进行组件注入，这个注解派生了很多其他注解
+            @ConditionalOnBean,当项目中存在指定bean时才注册组件，等等还有很多类似的派生注解
+        之前学spring的时候已经做过这几个注解的使用，详情见spring笔记
+    2，原生配置文件引入
+        @ImportResource
+            使用场景：当以前的项目使用spring配置文件(xml文件)的方式注册组件时，这种方式在springboot中注册不了组件，我们可以通过
+            @ImportResource注解指定xml文件位置，从而将组件注册进容器中
+    3，配置绑定
+        3.1)@ConfigurationProperties
+
+        3.2)@EnableConfigurationProperties+@ConfigurationProperties
+            和第三种方式差不多，如果Car类上没有@Component注解，只有@ConfigurationProperties("car")注解
+            则在配置类上使用@EnableConfigurationProperties(Car.class)
+            就表示开启Car配置绑定功能，而且会将Car类加入到容器中
+        3.3)@Component+@ConfigurationProperties
+            之前导入properties配置文件数据，都是创建properties对象然后再取值
+            现在使用@ConfigurationProperties注解，取出配置文件中的数据，要使用这个注解前提是组件必须加入到容器中
+            这个注解作用是资源文件中数据直接与bean类绑定
+            实例如下：
+                1)在springboot配置文件中配置资源数据
+                    #Car类属性值
+                    car.carName=奔驰
+                    car.carPrice=100万
+                2)Car类中
+                    @ConfigurationProperties(prefix="car")
+                    @Component
+                    public class Car {
+                        private String carName;
+                        private String carPrice;
+                    }
+                这种方式即可为Car属性绑定值
+
+自动装配原理
+    @SpringBootApplication注解
+        由@SpringBootConfiguration，
+        @EnableAutoConfiguration，
+        @ComponentScan构成
+
+        1，@SpringBootConfiguration
+            表示MyApplication程序入口类是一个由@Configuration注解标注的配置类
+        2，@ComponentScan注解
+            包扫描
+        3，@EnableAutoConfiguration注解
+            由@AutoConfigurationPackage注解和@Import({AutoConfigurationImportSelector.class})注解构成
+            3.1)@AutoConfigurationPackage注解
+                这个注解作用是将指定的一个包下所有组件注册进容器中，
+                指定的包就是被@SpringBootApplication标注的MyApplication类所在的包，即world.keyi.boot
+            3.2)@Import({AutoConfigurationImportSelector.class})注解，
+                在启动阶段，根据默认配置，将往容器中导入130多个组件进容器中，但是实际上还是根据按需加载决定组件生不生效
+                而按需加载的原理就是根据@Conditioanal注解，条件装配
+
+        总结：
+            - SpringBoot先加载所有自动配置类(XXXAutoConfiguration)
+            - 每个自动配置类按照条件(@ConditionalXXX)进行生效，每个配置类都会默认绑定配置文件指定的值
+                就是这两个注解的使用@EnableConfigurationProperties+@ConfigurationProperties
+            - 生效的配置类就会给容器中装配很多组件，只要容器中有这些组件，相当于这些功能就有了
+            - Springboot默认在底层配好所有的组件，但是如果用户自己配置了，就以用户的优先
+                这种方式是基于@ConditionalOnMissingBean注解实现的，如果用户没有自定义，则自己注册组件进容器
+            整体下来就是，springboot在启动时给我们装配了很多组件，这些组件按照条件装配进容器，
+                这些组件所依赖的参数从XXXProperties类中获取，而Properties类型的组件又是与application.properties文件
+                绑定在一起的，所以我们只需要该springboot的配置文件中参数就行。
+
+    查看自动配置了哪些组件进容器
+        在配置文件中加入debug=true即可开启自动配置报告
+        自动配置报告中所有negative matches的内容都是不生效的,Positive Matches的内容都是生效的
+
+
+开发小技巧
+    lombok：简化javabean的开发
+        @Data，//生成get,set方法，toString方法，equalAndHashCode方法
+        @NoArgsConstructor，
+        @AllArgsConstructor //生成带全部参数的构造器
+        @slf4j,生成一个日志对象，打印时使用log.info("");,代替system.out.println();
+    dev-tools
+        热部署，热更新，使用这个依赖后，当更改静态文件时能直接改好，当更改类文件，ctrl+F9,重新部署项目
+        还是相当于把项目重新启动了一遍，当然也有真正的热更新，也叫热加载，即当你更改类文件，并不需要部署项目就能运行
+        就是spring的JRebel，不过要钱，是付费软件
+    spring-Initializr
+        项目初始化向导，简单方便创建项目
+
+SpringBoot核心技术
+    配置文件(yaml/yml标记语言)
+        1，YAML语法
+            1)key: value，kv之前有空格
+            2)大小写敏感
+            3)使用缩进表示层级关系,缩进不允许使用tab键，只允许空格
+            4)缩进的空格数不重要，只要相同层级的元素左对齐即可
+            5)#表示注释
+            6)'',""表示字符串内容，会被转义/不转义，字符串本身不需要加引号
+        2，写法
+            2.1)对象，map集合
+                User对象的username和password写成
+                行内写法：user: {username:万一,password:123456}
+                或者：user:
+                            username: 万一
+                            password: 123456
+            2.2)数组,set集合，list集合
+                行内写法：K: [v1,v2,v3]
+                或者：K:
+                        - v1
+                        - v2
+                        - v3
+
+    Web开发
+        1，简单功能分析
+            1.1)静态资源访问
+                - 静态资源目录/static,/public,/resources,/META-INF/resources
+                    意思是，类路径下只要有这些目录，都可以被springboot当作静态资源目录
+                - 访问：当前项目根路径/+静态资源名
+                - 原理，静态映射/**，静态资源动态资源都能匹配
+                    请求一进来，先找Controller看能不能处理，不能处理的所有请求又都交给静态资源处理器
+                    静态资源能找到，则访问，静态资源也找不到，则404
+                - 静态资源访问前缀
+                    默认无前缀，加前缀，springboot配置文件中加：spring.mvc.static-path-pattern=/res/**
+                    加前缀的意义是：只有请求路径是/res路径下的请求是静态资源请求，方便拦截器过滤掉静态资源请求
+                    如果是之前/**，则静态请求和动态请求都会拦截到，效率低下，拦截器只负责拦截动态资源请求
+                - 改变默认的静态资源路径
+                    以前是在static，public包下的文件被当做静态资源文件，你也可以更改成在其他路径下，静态资源文件也能
+                    被访问到，更改springboot配置文件，spring.web.resources.static-locations=classpath:cargo
+                    表示，在类路径下的cargo目录被当做静态资源文件存放地，其他默认的目录则会失效
+                - webjars访问jquery等文件，导入jquery包后，访问路径为:http://localhost:8080/webjars/jquery/依赖版本号/jquery.js
+                    这个路径配置在页面中，即可访问jquery文件等
+            1.2)欢迎页支持
+                - 静态资源目录下存在index.html的文件会被当做欢迎页
+                    但是如果你配置了静态资源前缀功能，则这种静态资源下的欢迎页访问就会失效
+                - controller处理/index
+            1.3)自定义Favicon
+                只需要把文件名为Favicon.ico的文件放到静态资源文件中，就可以被仿作网站图标了
+                但如果你配置了静态资源访问前缀，则这种方式会失效
+            1.4)静态资源配置原理
+                - Springboot启动默认加载 XXXAutoConfiguration类(自动配置类)
+                - SpringMVC功能的自动配置类主要是：WebMvcAutoConfiguration，只要配置了web场景启动器就会生效
+                - 在WebMvcAutoConfiguration自动配置类中，与WebMvcProperties类，ResourceProperties做了资源绑定
+                    这两个资源类又和配置文件中的某些属性做了绑定，
+                    WebMvcProperties==spring.mvc   ResourceProperties==spring.resources
+                - 如果一个配置类(容器中的类，也可以是被@Component标注的类)只有一个有参构造器，则这个有参构造器中
+                    所有的参数都会从容器中找，之前学spring注解的时候学习到过，这里使用了自动装配的原理，只不过省略了@AutoWired
+                    和使用注解@Bean注册组件时，参数也是从容器中找是一样的。
+                - 在WebMvcAutoConfiguration中有一个WebMvcAutoConfigurationAdapter的内部类也是一个配置类，这个配置类就只有一个有参构造器
+                    public WebMvcAutoConfigurationAdapter(ResourceProperties resourceProperties, WebMvcProperties mvcProperties,
+                        ListableBeanFactory beanFactory, ObjectProvider<HttpMessageConverters> messageConvertersProvider,
+                        ObjectProvider<WebMvcAutoConfiguration.ResourceHandlerRegistrationCustomizer>
+                        resourceHandlerRegistrationCustomizerProvider) {
+
+                        //获取配置文件中spring.resource开头的信息，封装到ResourceProperties类中
+                        this.resourceProperties = resourceProperties;
+                        //获取配置文件中spring.mvc开头的信息，封装到WebMvcProperties类中
+                        this.mvcProperties = mvcProperties;
+                        //获取容器，IOC容器
+                        this.beanFactory = beanFactory;
+                        //找到所有的消息转换器HttpMessageConverters
+                        this.messageConvertersProvider = messageConvertersProvider;
+                        //找到资源处理器的自定义器
+                        this.resourceHandlerRegistrationCustomizer = (WebMvcAutoConfiguration.ResourceHandlerRegistrationCustomizer)resourceHandlerRegistrationCustomizerProvider.getIfAvailable();
+                    }
+                - 在WebMvcAutoConfigurationAdapter中有关于静态资源处理器的配置，在这里可以看到，可以通过在springboot配置文件中
+                    增加spring.resources.add-mappings=false,来禁用掉静态资源的请求,也就是说项目下static等静态资源目录就会失效，访问不了
+                    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+                        //如果配置了add-mappings=false则禁用静态资源访问
+                        if (!this.resourceProperties.isAddMappings()) {
+                            logger.debug("Default resource handling disabled");
+                        } else {
+                            Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+                            CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+                            //webjars的规则
+                            if (!registry.hasMappingForPattern("/webjars/**")) {
+                                this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{"/webjars/**"}).addResourceLocations(new String[]{"classpath:/META-INF/resources/webjars/"}).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                            }
+                            String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+                            //匹配默认的静态资源映射规则，即/**
+                            if (!registry.hasMappingForPattern(staticPathPattern)) {
+                                //这里配置了静态资源路径，默认的四个位置，static,public等目录下
+                                this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{staticPathPattern}).addResourceLocations(WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations())).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                            }
+                        }
+                    }
+                - 欢迎页的处理规则
+                    为什么我们配置了静态资源前缀，从/**，改成/static/**，欢迎页和Favicon就使用不了
+                    因为在底层已经写死了，在欢迎页底层
+                    WelcomePageHandlerMapping(TemplateAvailabilityProviders templateAvailabilityProviders, ApplicationContext applicationContext, Optional<Resource> welcomePage, String staticPathPattern) {
+                        //如果静态目录下有index.html并且，访问路径是/**，则可以使用欢迎页
+                        if (welcomePage.isPresent() && "/**".equals(staticPathPattern)) {
+                            logger.info("Adding welcome page: " + welcomePage.get());
+                            this.setRootViewName("forward:index.html");
+                        } else if (this.welcomeTemplateExists(templateAvailabilityProviders, applicationContext)) {
+                            //这里指的是，查看controller中有没有能处理/index请求的处理器方法
+                            logger.info("Adding welcome page template: index");
+                            this.setRootViewName("index");
+                        }
+                    }
+        2，请求参数处理
+            2.1)请求映射
+                2.1.1)REST风格支持(使用HTTP请求方式的不同来表示对资源的操作)
+                    以前：/getUser,获取用户，deleteUser,删除用户，/updateUser,修改用户，等
+                    现在:/user ,GET请求表示获取用户，DELETE请求表示删除用户，PUT请求表示修改用户，POST表示增加用户
+                    核心filter：HiddenHttpMethodFilter
+                    用法，在表单中，表单请求方式填post，并给表单增加一个隐藏域，它的name属性值为_method
+                        value值为put或者delete
+                    在springboot中需要手动开启请求方式转换过滤器
+                        spring.mvc.hiddenmethod.filter.enabled=true
+
+                    HiddenHttpMethodFilter在用户表单请求时，会拦截用户请求，根据_method属性，拿到设置value值，put/delete
+                        然后其父类实现HttpServletRequest接口，重写了getMethod方法，即使用包装器模式/装饰器模式，
+                        将请求方式替换成用户设置的，最后请求放行的时候使用新的request
+
+                    如果请求时安卓app发起或者是postman发起，ajax形式，则不经过filter，因为这两中方式可以直接发起put，delete请求
+                    我们可以把表单中要提交的_method属性改成自己想要的
+                        通过@Bean向容器中注册HiddenHttpMethodFilter类型的组件，并且调用setMethodParam方法更改属性，
+                        因为@ConditionalOnMissingBean({HiddenHttpMethodFilter.class})条件不成立，springboot在启动时并不会
+                        调用默认的filter，而是我们自己创建的HiddenHttpMethodFilter对象，所以表单隐藏域中name属性可以改成自己的。
+                2.1.2)请求映射原理
+                    学springmvc时已经很清楚了，根据请求路径，找到处理器映射器，返回给DispatcherServlet一个处理器执行链
+                    包含可以执行该请求的处理器和匹配成功的拦截器，然后DispatcherServlet又根据处理器找到处理器适配器：RequestMappingHandleAdapter
+                    这个处理器适配器来执行处理器中匹配到的方法，执行完后根据视图解析器创建视图对象，view对象再将隐含模型中的数据填充到视图中并返回给浏览器
+            2.2)普通参数与基本注解
+                2.2.1)注解
+                    @PathVariable(路径变量)，标注在参数上，可以获取指定的路径变量，如果参数是map<String,String>类型则获取所有路径变量的值
+                    @RequestHeader(获取请求头),标注在参数上，可以获取指定的请求头参数信息，如果参数是map<String,String>类型，则获取请求头中所有信息
+                    @ModelAttribute，
+                    @RequestParam(获取请求参数)，标注在参数上，可以获取指定的请求参数信息，如果被标注的参数是map<String,String>类型，则获取所有请求参数
+                    @MatrixVariable(矩阵变量)
+                        - 矩阵变量需要在springboot中手动开启，默认被springboot禁用了
+                            手动开启：对于路径的处理，UrlPathHelper对象进行解析的，它的removeSemicolonContent属性在springboot默认是true
+                                表示要移出;后端的内容，
+                        - 根据规范，矩阵变量应该绑定在路径变量中,就是在路径中以;携带参数，/car/sell;xxx=xxx
+                        - 若是有多个矩阵变量，应当使用;进行分割
+                        - 若是一个矩阵变量有多个值，应当使用,进行分割，或者命名多个相同的key即可
+                        - 使用场景，当用户禁用掉cookie时，后台无法获取cookie携带过来的JSessionId值，没有该值就获取不了用户的session对象
+                            此时可以重写URL:/car/{path;price=34;brand=byd,audi,yd},把cookie的值使用矩阵变量的方式传递到后端
+                            矩阵变量一般都是代表cookie里面的key/Value
+                        - 想要使用矩阵变量，就得自己全权接收springmvc，无需springboot为我们注册springmvc各种组件，有三种方案
+                            * 不用EnableWebMvc注解，使用@Configuration+WebMvcConfigurer(是一个接口，接口方法有我们需要的各种组件)
+                            * 声明WebMvcRegistrations改变默认底层组件
+                            * 使用@EnableWebMvc+@Configuration+DelegatingWebMvcConfiguration全面接管SpringMVC
+                        - 实例：
+                            * 前端：<a href="car/sell;price=20;brand=bm,bc,ym">测试矩阵变量</a>
+                            * 后端：
+                                1)配置自定义的WebMvcConfigurer组件
+                                @Bean
+                                public WebMvcConfigurer webMvcConfigurer(){
+                                    return new WebMvcConfigurer() {
+                                        @Override
+                                        public void configurePathMatch(PathMatchConfigurer configurer) {
+                                            UrlPathHelper urlPathHelper = new UrlPathHelper();
+                                            //不移除;后面的内容，矩阵变量就可以生效
+                                            urlPathHelper.setRemoveSemicolonContent(false);
+                                            configurer.setUrlPathHelper(urlPathHelper);
+                                        }
+                                    };
+                                }
+                                2)处理器方法
+                                @ResponseBody
+                                @RequestMapping("/car/{sell}")
+                                public Map test1(@MatrixVariable(value = "price",pathVar = "sell")String price,
+                                                    @MatrixVariable(value = "brand",pathVar = "sell") List<String> brands,
+                                                    @PathVariable("sell")String path){
+                                    System.out.println(price);
+                                    System.out.println(brands);
+                                    System.out.println(path);
+                                    HashMap<String, Object> map = new HashMap<>();
+                                    map.put("price",price);
+                                    map.put("brands",brands);
+                                    map.put("path",path);
+                                    return map;
+                                }
+                            * 页面输出结果：{"path":"sell","brands":["bm","bc","ym"],"price":"20"}
+                            * @MatrixVariable注解就是获取路径变量后的;之后的内容，pathVar属性表示从sell路径变量中获取price的值
+                    @CookieValue(获取cookie值)，标注在参数上，可以获取指定的cookie中Value值，如果被注解的参数是Cookie对象，则获取该cookie对象
+                    @RequestBody(获取请求体)，获取请求体中所有信息
+                    @RequestAttribute(获取Request域属性),一般被用于访问由过滤器或拦截器创建的、预先存在的请求属性，再传入controller接口中请求参数中
+                        parameter和Attribute的区别
+                            区别：
+                                来源不同：
+                                    参数（parameter）是从客户端（浏览器）中由用户提供的，若是GET方法是从URL中
+                                        提供的，若是POST方法是从请求体（request body）中提供的；
+                                    属性（attribute）是服务器端的组件（JSP或者Servlet）利用request.setAttribute()设置的
+                                操作不同：
+                                    参数（parameter）的值只能读取不能修改，读取可以使用request.getParameter()读取；
+                                    属性（attribute）的值既可以读取亦可以修改，读取可以使用request.setAttribute(),设置可使用request.getAttribute()
+                                数据类型不同：
+                                    参数（parameter）不管前台传来的值语义是什么，在服务器获取时都以String类型看待，并且客户端的参数值只能是简单类型的值，不能是复杂类型，比如一个对象。
+                                    属性（attribute）的值可以是任意一个Object类型。
+                            共同点
+                                二者的值都被封装在request对象中。
+                2.2.2)ServletAPI
+                    WebRequest，ServletRequest，MultipartRequest，HttpSession，javax.servlet.http.PushBuilder
+                    Principal，InputStream，Reader，HttpMethod，Locale，TimeZone，ZoneId
+                2.2.3)复杂参数
+                    Map,Errors/BindingResult,Model,RedirectAttribute(重定向携带数据),ServletResponse
+                    ,SessionStatus,UriComponentsBuilder，ServletUriComponentsBuilder
+                    - 对Map<String,Object>,Model,HttpServletRequest进行操作就是操作request域
+                        向这三个参数放数据，就是向request域中放数据，(在渲染的时候把隐含模型中的数据放在request对象中)
+                    - 参数不论是Model还是Map，都是mavContainer对象中的defaultModel属性，这个属性的类型是BindingAwareModelMap
+                        mavContainer对象类型是ModelAndViewContainer,包含要去的页面地址View,还包含Model数据
+                2.2.4)自定义对象参数，例如参数是User，Person等自定义类型参数是如何封装的？
+                    - 在springmvc中使用ServletModelAttributeMethodProcessor参数处理器对自定义对象进行封装
+                    - WebDataBinder:web数据绑定器，将请求参数的值绑定到指定的javabean里面
+                        绑定器中的conversionService属性的类型是WebConversionService类，在这个类中有converters属性
+                        存放很多类型转换器，大概120多个，这些类型转换器指定将string类型转换成integer或者data或者其他类型数据
+                        通过这些转换器，将前端传过来的各个数据转成自定义对象属性需要的类型从而进行封装数据
+                    - WebMvcConfigure定制化SpringMVC的功能
+                        自定义类型转换器也需要配置该组件
+            2.3)POJO封装过程
+            2.4)参数处理原理
+                参数解析器的作用：确定将要执行的目标方法的每一个参数的值是什么，
+                所以springmvc目标方法能写多少种参数类型，要看参数解析器的类型
+                而springmvc目标方法能写多少种返回值类型，要看返回值处理器的类型
+                    例如：RequestParamMethodArgumentResolver,这个参数处理器处理被@RequestParam注解标注的参数
+                        PathVariableMethodArgumentResolver,这个参数处理器处理被@PathVariable注解标注的参数
+                        ServletModelAttributeMethodProcessor，这个参数处理器处理自定义类型的参数
+
+        3，数据响应与内容协商
+            3.1)响应JSON
+                jackson.jar+@ResponseBody
+                web场景启动器，自动引用了json场景启动器，无需再导包
+            3.2)内容协商
+                - 指的是：浏览器默认会以请求头(Accept)的方式告诉服务器他能接收什么样的内容类型
+                        服务器最终根据自己自身的能力，决定服务器能生产出什么样的内容类型
+                        springmvc会挨个遍历所有容器底层的HttpMessageConverter，看谁能处理转换成相应的内容类型
+                        找到相应的消息转换器，如果是转成json数据，则匹配到MappingJackson2HttpMessageConverter
+                        最后使用该对象将返回值类型数据转成Json数据再返回给浏览器
+
+                - HttpMessageConverter的作用是看，是否支持待转换对象与MediaType(协商后的内容类型)之间的转换
+                    返回值处理器底层使用消息转换器，完成返回值对象数据转成内容协商类型数据
+
+                - 如果控制器方法使用@ResponseBody注解，则springmvc底层会在众多的返回值处理器中找到RequestResponseBodyMethodProcessor
+                    这个对象就是负责处理标了@ResponseBody注解的控制器方法
+                    这个对象在底层又会根据内容协商，找到服务器和浏览器都能接受的数据类型，这个类型就是内容协商后的类型
+                    然后遍历所有HttpMessageConverter，查找看哪一个消息转换器能将控制器方法返回的对象转成内容协商类型数据
+                    最后消息转换器转换后将数据写在response对象中返回给浏览器。
+
+                - 内容协商原理
+                    * 判断当前响应头中是否已经有确定的媒体类型，mediaType
+                    * 获取客户端(Postman,浏览器)支持的媒体类型，请求头的accept字段
+                        + springmvc使用contentNegotiationManager,内容协商管理器，默认使用基于请求头的策略获取浏览器能接收的媒体类型
+                        + 基于请求头的策略的类叫HeaderContentNegotiationStrategy
+                        + 我们可以通过配置，使得策略转变为基于请求参数的策略获取浏览器能接收的媒体类型，
+                            通过springboot配置，spring.mvc.contentNegotiation.favor-parameter=true
+                            配置好后，内容协商管理器的策略数组就会变成2个，基于参数和基于请求头，
+                            在请求参数中带format参数即可设置浏览器可接收的媒体类型，format=json
+                            例如：http://localhost:8080/test/person?format=json,则服务器返回给浏览器json数据
+                            format=xml,则服务器返回给浏览器xml数据，前提是服务器能返回指定的类型
+                    * 遍历循环所有当前系统的MessageConverter,看哪一个消息转换器能够操作返回值类型对象，添加json依赖就是加消息转换器
+                    * 找到能支持操作该对象的消息转换器，就把消息转换器的媒体类型统计出来，媒体类型指的是accept字段能填的类型，例如application/json
+                    * List<MediaType> acceptableTypes,存放客户端需要的媒体类型，List<MediaType> producibleTypes,存放服务器能返回媒体类型
+                        使用两个for循环进行匹配，找出匹配的媒体类型，List<MediaType> mediaTypesToUse,存放互相匹配的媒体类型，
+                        即，客户端能接受的媒体类型，服务器也能返回的媒体内型
+
+                - 自定义MessageConverter,返回自定义类型数据，application/x-keyi
+                    1)添加自定义的MessageConverter进系统底层
+                    2)系统底层就会统计出所有MessageConverter能操作哪些类型
+                    3)客户端内容协商，客户端能接收application/x-keyi，而自定义MessageConverter能处理application/x-keyi类型
+                案例在博客中有，springmvc之内容协商那篇
+        4，视图解析与模板引擎
+            配置thymeleaf步骤：
+                1)导包
+                    <!--thymeleaf-->
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-thymeleaf</artifactId>
+                    </dependency>
+                2)在resources目录下创建templates目录，在目录中创建html文件，在html文件中设置名称空间
+                    <!DOCTYPE html>
+                    <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+            在行内使用thymeleaf属性：[[${session.user.name}]]
+            thymeleaf抽取公共页面
+                1)标签内使用th:fragment="commonHeader"，或者给公共的div设置一个id
+                    <footer th:fragment="copy">
+                      &copy; 2011 The Good Thymes Virtual Grocery
+                    </footer>
+                2)其他页面引用时，有三种不同的方式
+                    2.1)在其他页面的div中加上th:insert="公共页面名称(不带.html) :: 片段名或者#id名"
+                        这种方式将会在div中加入公共页面片段
+                    2.2)在其他页面的div中加上th:replace="公共页面名称(不带.html) :: 片段名或者#id名"
+                        这种方式将会使用被引用的div代替其他页面的div
+                    2.3)在其他页面的div中加上th:include="公共页面名称(不带.html) :: 片段名或者#id名"
+                        这种方式会在其他页面div中加入被引用div之内的片段
+                    实例：
+                    <body>
+                      ...
+                      <div th:insert="footer :: copy"></div>
+                      <div th:include="footer :: copy"></div>
+                      <div th:replace="footer :: copy"></div>
+                    </body>
+                    将会变成：
+                    <body>
+                      ...
+                      <div>
+                        <footer>
+                          &copy; 2011 The Good Thymes Virtual Grocery
+                        </footer>
+                      </div>
+
+                      <div>
+                        &copy; 2011 The Good Thymes Virtual Grocery
+                      </div>
+
+                      <footer>
+                        &copy; 2011 The Good Thymes Virtual Grocery
+                      </footer>
+                    </body>
+            thymeleaf遍历数据
+                <table border="2">
+                    <tr>
+                        <td>姓名</td>
+                        <td>年龄</td>
+                        <td>班级</td>
+                    </tr>
+                    <tr th:each="s,status:${students}">
+                        <td th:text="${status.index}"></td>
+                        <td th:text="${s.name}"></td>
+                        <td th:text="${s.age}"></td>
+                        <td th:text="${s.className}"></td>
+                    </tr>
+                </table>
+                不仅能遍历元素，还能使用获取状态，status，这个名字随便取,
+                状态有很多属性，index属性表示当前元素的索引(从0开始)，current属性表示当前对象，count属性表示计数(从1开始)
+                还有很多就不细说了
+
+            视图解析原理流程
+                1)目标方法处理的过程中，所有数据都会被放在ModelAndViewContainer里面，包括数据和视图地址
+                2)方法参数是一个自定义类型对象(该对象属性值是从请求参数中确定的)，把他重新放在ModelAndViewContainer
+                    这句话加上之前的理解，我感觉是控制器方法参数如果是自定义类型对象，在根据前端参数封装对象之前，
+                    它会先从ModelAndViewContainer中查找是否存在该对象，如果存在，直接在container对象中赋值，然后再根据前端传递的参数封装对象
+                    最后把封装好的对象放入隐含模型中。
+                3)任何目标方法执行完成以后都会返回ModelAndView(保存着数据和视图地址)
+                4)processDispatcherResult方法处理派发结果(页面该如何响应)
+                    4.1)调用DispatcherServlet的render方法，render(mv,request,response)
+                        4.1.1)在render方法中，调用resolveViewName方法，根据视图名(String返回值)创建出View对象
+                                在resolveViewName方法中，遍历容器中所有的视图解析器，使用视图解析器来创建视图对象
+                              Springboot中有一个ContentNegotiationViewResolver解析器，遍历的时候，这个解析器排名第一
+                              且，这个解析器解析视图名时，在其内部，还是通过其他解析器解析视图名，相当于整合的功能
+                        4.1.2)通过返回的视图对象View，调用View对象的render方法，对模型数据进行渲染
+
+            thymeleaf对String返回值，视图的解析：
+                如果返回值以forward:开始，则会创建InternalResourceView对象，这个对象的renderMergedOutputModel方法就是render方法，
+                    在该方法中，通过request创建RequestDispatcher对象，再调用它的forward方法，request.getRequestDispatcher(视图名).forward(request,response)
+                如果返回值以redirect:开始，则会创建RedirectView对象，这个对象的render就是使用原生调用：response.sendRedirect()
+                如果返回值是普通字符串，则会创建ThymeleafView对象，根据对象中的process方法进行渲染数据
+        5，拦截器
+            5.1)配置拦截器
+                1)自定义实现类实现HandleInterceptor接口，实现三个方法
+                2)将自定义拦截器注册到容器中
+                    /*配置WebMvcConfigurer,定制化SpringMVC的功能*/
+                    @Bean
+                    public WebMvcConfigurer webMvcConfigurer(){
+                        return new WebMvcConfigurer() {
+                            @Override
+                            public void addInterceptors(InterceptorRegistry registry) {
+                                /*
+                                    addPathPatterns("/**"):指定拦截的请求路径
+                                    excludePathPatterns("/static/**")：指定放行的请求路径，当这些请求来到时，不经过拦截器
+                                 */
+                                registry.addInterceptor(new MyHandlerInterceptor()).addPathPatterns("/**").excludePathPatterns("/static/**");
+                            }
+                        };
+                    }
+            5.2)拦截器原理：
+                1)根据当前请求，找到HandlerExecutionChain【可以处理请求的handle以及handle的所有拦截器】
+                2)先来顺序执行所有拦截器的preHandle方法
+                    2.1)如果当前拦截器的preHandle返回为true，则执行下一个拦截器的preHandle
+                    2.2)如果当前拦截器返回为false，直接倒序执行所有已经执行了的拦截器的afterCompletion方法
+                3)如果任何一个拦截器返回为false，直接跳出，不执行目标方法
+                4)所有拦截器都返回true，执行目标方法
+                5)倒序执行所有拦截器的postHandle方法
+                6)前面的步骤有任何异常都会直接倒序触发afterCompletion
+                7)页面成功渲染完成以后，也会倒序触发afterCompletion
+        6，文件的上传
+            6.1)前端页面单文件上传：<input type="file" name="headerImg" id="xxx"/>
+                前端页面多文件上传：<input type="file" name="photos" multiple/>，multiple表示多文件上传
+                注意:form表单应该带有enctype属性，且要enctype="multiple/form-data"，只有如此才能表示该表单是文件上传表单
+            6.2)后端目标方法接收文件时，如果是单文件则@RequestPart("headerImg") MultipartFile file,使用这种方式来接收单文件，
+                    @RequestPart("headerImg")注解和@RequestParam注解一样，只不过一个是接收普通参数，一个是接收文件参数
+                    多文件接收时，参数应该这样写 @RequestPart("photos") MultipartFile[] file
+            6.3)可以通过springboot配置文件设置上传单个文件的大小和整个请求时，文件上传最大容量
+                spring.servlet.multipart.max-file-size=10MB //表示单个文件最大10MB
+                spring.servlet.multipart.max-request-size=100MB //整个请求时，多个文件一共不超过100MB
+            6.4)文件上传部分步骤
+                1)请求一进来，使用文件上传解析器判断该请求是否是文件上传请求，如果是则将该请求封装为MultipartHttpServletRequest对象
+                2)参数解析器来解析请求中的文件内容封装成MultipartFile对象，RequestPartArgumentResolver
+                3)将request中文件信息封装为一个map；MultiValueMap<String,MultipartFile>,@RequestPart("photos")就是指定
+                    key去找对应的value(MultipartFile),找到后赋值给参数
+                底层使用FileCopyUtils,工具类实现文件流的拷贝(transferTo方法的实现)
+        7，跨域
+        8，异常处理
+            8.1)默认规则
+                默认情况下，SpringBoot提供/error处理所有错误的映射
+                默认情况下，resources目录下或者templates目录下的error目录下的4xx,5xx页面会被自动解析
+            8.2)异常处理自动配置原理
+                1)ErrorMvcAutoConfiguration，自动配置异常处理规则，在该类中放了很多组件进容器
+                    类型：DefaultErrorAttributes -> id:errorAttributes
+                        作用：定义错误页面能包含哪些内容，例如时间搓，错误状态码等等
+                    类型：BasicErrorController -> id:basicErrorController
+                        (作用：浏览器访问，出错就返回视图html，ajax访问就返回json数据，适配响应)
+                        处理默认/error路径的请求，页面响应 new ModelAndView("error",model)
+                        容器中有组件View -> id是error(这个视图对象就是响应的默认错误页，ErrorMvcAutoConfiguration类的StaticView内部类)
+                        容器中放组件，BeanNameViewResolver,这个解析器是通过在容器中组件的id来找到对象，跟上面的View组件配合使用
+                    类型：DefaultErrorViewResolver -> id:conventionErrorViewResolver
+                        如果发生错误，会以Http的状态码作为视图页地址(viewName),找到真正的页面
+                        所以这就解释了，为什么在template/error/404.html或者5xx.html页面能够被返回给浏览器，是根据状态码找到视图。
+                2)如果我们觉得自定义错误页面中，错误属性不够，我们应该自定义DefaultErrorAttributes
+                    如果我们不想跳转逻辑响应的视图对象，不是默认的StaticView视图，我们可以自定义BasicErrorController
+                    如果我们不想把错误页面放在error文件夹下，我们就该自定义DefaultErrorViewResolver
+            8.3)异常处理步骤流程
+                1)执行目标方法，目标方法运行期间有任何异常都会被catch，而且标志当前请求结束，并且将异常赋值给dispatcherServlet的dispatcherException
+                2)进入视图解析流程：processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);也是视图渲染流程
+                3)mv=processHandleException(..);    使用容器中处理器异常解析器处理handler发生的异常，返回ModelAndView
+                    3.1)在该方法中，遍历所有的处理器异常解析器，看谁能处理当前异常
+                    3.2)系统默认的异常有：
+                        DefaultErrorAttribute(它是ErrorMvcAutoConfiguration异常自动装配类中注册的)
+                        HandleExceptionResolverComposite(异常的组合类，在该类中又有三个处理器异常解析器)
+                            ExceptionHandlerExceptionResolver(处理，目标方法标注了@ExceptionHandle注解的异常)
+                            ResponseStatusExceptionResolver(处理，目标方法/自定义异常类标注了@ResponseStatus注解的异常)
+                            DefaultHandlerExceptionResolver(处理，springMVC自带的异常)
+                    3.3)遍历处理器异常解析器解析异常
+                        DefaultErrorAttribute先来处理异常，把异常信息保存到request中，并且返回为null，开始调用其他三个异常解析器
+                        如果其他三个异常解析器都不能解析该异常，则异常会被抛出
+                            3.3.1)如果没有任何异常解析器能处理该异常，则底层会再次发送一个error请求，而异常自动装配类ErrorMvcAutoConfiguration
+                                中的BasicErrorController控制器，专门处理该error请求
+                            3.3.2)在BasicErrorController中，遍历容器中所有的ErrorViewResolver,错误视图解析器，看谁能解析出视图对象，而在自动装配类中
+                                已经为此注册了一个defaultErrorViewResolver,默认的错误视图解析器
+                            3.3.3)默认的DefaultErrorViewResolver,作用是把响应状态码作为错误页的地址，error/500.html
+                                这也解释了为什么在templates/error下的400,5xx.html页面会被解析，作为错误视图页面
+                            3.3.4)模板引擎最终响应这个页面error/500.html
+                4)说人话就是，如果目标方法发生异常，你又没有使用@ExceptionHandle注解处理异常，或者使用自定义异常类处理异常(被@ResponseStatus注解标注)
+                    底层就会重新转发一个/error请求，由BasicErrorController来处理该请求，怎么处理呢？调用已经被注册的DefaultErrorViewResolver错误视图解析器进行解析
+                    怎么解析呢？根据异常的状态码，在templates/error下找以状态码命名的html页面，找到就是用该html页面进行渲染数据，返回给浏览器。
+            8.4)定制错误处理逻辑
+                8.4.1)自定义错误页
+                    error/404.html error/5xx.html，有精确的错误状态码页面就精确匹配，没有就找4xx.html，如果都没有就触发白页
+                    例如：请求时不带请求参数或者参数类型不对，就会爆400 bad request,一般都是浏览器的参数没有传递正确
+                8.4.2)@ControllerAdvice+@ExceptionHandler处理全局异常(底层使用了ExceptionHandlerExceptionResolver)
+                8.4.3)@ResponseStatus+自定义异常，底层是ResponseStatusExceptionResolver,把ResponseStatus注解的信息组装成ModelAndView返回
+                        底层会再次使用tomcat发送/error请求(response.sendError(statusCode,resolvedReason))表示此次请求立即结束，tomcat再发送一个/error请求)
+                        从而让底层的BasicErrorController进行处理
+                8.4.4)Spring底层的异常，如参数类型转换异常，底层是DefaultHandlerExceptionResolver处理框架底层的异常
+                8.4.5)自定义实现HandleExceptionResolver接口处理异常，可以作为默认的全局异常处理规则
+                    在接口方法中，直接response.sendError("500","错误消息")，表示结束当前请求，重新发送/error请求，让底层默认的BasicErrorController处理请求
+                    然后BasicErrorController又调用defaultErrorViewResolver，根据状态码，在Templates/error/下找以状态码为名的html页面。
+                    小案例
+                    /*
+                        自定义处理器异常解析器
+                     */
+                    @Order(value = Ordered.HIGHEST_PRECEDENCE)  //优先级，数字越小优先级越高
+                    @Component
+                    public class MyHandlerExceptionResolver implements HandlerExceptionResolver {
+                        @Override
+                        public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+                            try {
+                                response.sendError(500,"错误信息：随便写");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            return new ModelAndView();
+                        }
+                    }
+                8.4.6)ErrorViewResolver实现自定义处理异常
+                    自己手动调用response.sendError()，/error请求就会交给BasicErrorController处理
+                    或者如果容器中所有的处理器异常解析器都不能处理该异常，也就是ModelAndView都返回为空，使用tomcat发送response.sendError()
+                    BasicErrorController接到/error请求，创建ModelAndView("error",model),然后调用BeanNameViewResolver，在容器中找
+                    以error为id的组件，就找到了默认配置的DefaultErrorViewResolver，这个解析器根据状态码找到视图。
+        9，Web原生组件注入(Servlet，Filter，Listener)
+            9.1)使用Servlet API
+                Servlet3.0规范给我们提供了@WebServlet,@Filter,@Listener注解，该注解标注在我们定义的servlet类上，过滤器上，监听器上
+                此外还需要@ServletComponentScan注解进行配合使用，@ServletComponentScan注解标注在主方法上，例如：
+                //自定义Servlet,使用@WebServlet
+                @WebServlet(urlPatterns="/wanYi")
+                public class MyServlet extends HttpServlet {
+                    @Override
+                    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {}
+                }
+
+                //主方法上标注@ServletComponentScan注解,寻找我们自定义的Servlet
+                @ServletComponentScan("world.keyi.boot")
+                @SpringBootApplication
+                @Slf4j
+                public class MyApplication {
+                    public static void main(String[] args) {
+                        //IOC容器
+                        ConfigurableApplicationContext applicationContext = SpringApplication.run(MyApplication.class, args);
+                        /*String[] names = applicationContext.getBeanDefinitionNames();
+                        for (String name:names){
+                            System.out.println(name);
+                        }*/
+                    }
+                }
+                当我们在浏览器发出请求/wanYi时，就被会我们的MyServlet执行，并且跳过了我们配置的拦截器，原因看9.3节
+            9.2)使用RegistrationBean
+                上面那种像spring方式，并且各个组件并不受容器管理，所以在springboot中使用@Bean方式注册组件更好，那么怎么使用springboot方式注册原始组件呢？
+                @Component
+                public class MyConfig {
+
+                    @Bean
+                    public ServletRegistrationBean myServlet(){
+                        //将Servlet注册进容器中
+                        MyServlet myServlet = new MyServlet();
+                        return new ServletRegistrationBean(myServlet,"wanYi","keYi");
+                    }
+
+                    //你还可以向上面方式一样，FilterRegistrationBean注册filter，ServletListenerRegistrationBean注册Listener
+                    @Bean
+                    public FilterRegistrationBean myFilter(){
+                        MyFilter myFilter = new MyFilter();
+                        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean(myFilter);
+                        //设置拦截器拦截的路径
+                        filterRegistrationBean.setUrlPatterns(Arrays.asList("/wanYi","/keYi/*"));
+                        return filterRegistrationBean;
+                    }
+                }
+
+            9.3)为什么我们自己写的MyServlet(使用第一种方式)，并不经过Spring的拦截器，
+                9.3.1)DispatcherServlet注入原理(DispatcherServlet怎么注册进容器中的)
+                    * 容器中自动配置了DispatcherServlet,属性绑定到WebMvcProperties,对应的配置文件是spring.mvc.xxx
+                    * 通过ServletRegistrationBean<DispatcherServlet>把DispatcherServlet配置进来
+                    * dispatcherServlet默认映射的是/路径，你也可以通过spring.mvc.servlet.path=/mvc/更改映射路径
+                9.3.2)回答9.3的问题：tomcat-servlet中，在上面例子中，此时tomcat中有两个servlet,一个是MyServlet，映射路径是/my
+                    一个是DispatcherServlet,映射路径是/，所以当我们发送/my请求时，会精确匹配到我们自己定义的MyServlet,
+                    所以我们发送的/my请求并不经过DispatcherServlet的拦截器，执行MyServlet的流程是原生tomcat的流程
+        10，嵌入式Servlet容器
+            10.1)切换嵌入式servlet容器
+                10.1.1)默认支持的WebServer
+                    * tomcat，Jetty，Undertow
+                10.1.2)切换服务器
+                    默认starter-web引用tomcat服务器，假设切换到undertow服务器
+                    依赖如下设置，排除掉tomcat设置，加入undertow依赖
+                    <!--springmvc，web场景启动器-->
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-web</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-starter-tomcat</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-undertow</artifactId>
+                    </dependency>
+                10.1.3)原理
+                    * SpringBoot应用启动发现当前是Web应用，因为我们导入了Web场景包，其中有tomcat依赖
+                    * Web应用会创建一个Web版的ioc容器，ServletWebServerApplicationContext
+                    * ServletWebServerApplicationContext启动的时候寻找ServletWebServerFactory(Servlet的Web服务器工厂，专门生产Servlet的web服务器)
+                    * SpringBoot底层默认有很多WebServer工厂
+                        TomcatServletWebServerFactory,JettyServletWebServerFactory,UndertowServletWebServerFactory
+                    * 底层会有一个自动配置类已经为我们配置好了上面的三个组件，ServletWebServerFactoryAutoConfiguration
+                        在ServletWebServerFactoryAutoConfiguration中使用@Import导入了ServletWebServerFactoryConfiguration(配置类)
+                        确切的说是在配置类上使用@Bean注册上面三个组件的
+                    * ServletWebServerFactoryConfiguration配置类根据动态判断系统中到底导入了哪个web服务器的包，(默认是web-starter导入tomcat包)
+                        容器中就有TomcatServletWebServerFactory，这个工厂类就会创建出Tomcat服务器并启动
+                    * 内嵌服务器，就是手动把启动服务器的代码调用(前提是导入了tomcat的核心jar包)
+            10.2)定制Servlet容器
+                10.2.1)修改springboot的配置文件server.xxx
+                10.2.2)直接自定义类实现ServletWebServerFactory接口，不过因为该接口是顶级接口，
+                        所以都是实现ConfigurableServletWebServerFactory接口更好
+                10.2.3)自定义类实现WebServerFactoryCustomizer<ConfigurableServletWebServerFactory>接口
+                    这个定制化器的作用是把配置文件的值和ServletWebServerFactory的属性进行绑定
+        11，定制化原理
+            11.1)定制化的常见方式
+                1)编写自定义配置类 xxxConfiguration+@Bean替换，增加容器中默认组件，例如视图解析器
+                2)修改配置文件
+                3)xxxCustomizer，定制化器，可以改变xxx的默认规则
+                4)web应用，实现WebMvcConfigurer即可定制化web功能
+                    @Configuration
+                    public class MyConfig2 implements WebMvcConfigurer {
+
+                        @Override
+                        public void addInterceptors(InterceptorRegistry registry) {
+
+                        }
+
+                        @Override
+                        public void addViewControllers(ViewControllerRegistry registry) {
+
+                        }
+                    }
+                5)@EnableWebMvc+WebMvcConfigurer+@Component可以全面接管SpringMVC,所有规则全部自己重新配置，实现定制和扩展功能
+                    @Configuration
+                    @EnableWebMvc
+                    public class MyConfig2 implements WebMvcConfigurer {
+                        /*
+                            @EnableWebMvc:全面接管，默认配置的静态资源，视图解析器，欢迎页全部失效
+                        */
+                        @Override
+                        public void addInterceptors(InterceptorRegistry registry) {
+
+                        }
+
+                        @Override
+                        public void addViewControllers(ViewControllerRegistry registry) {
+
+                        }
+                    }
+                    那么，为什么使用了@EnableWebMvc注解后，静态资源就访问不了，欢迎页也没有了呢？
+                        默认情况下Web自动配置类WebMvcAutoConfiguration，配置了很多组件，包括静态资源处理器，欢迎页等等
+                        但是Web自动配置类中组件的注册是有条件的，其中@ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+                        这个条件是，如果容器中没有这个组件，则WebMvcAutoConfiguration中组件注册进容器，但是使用@EnableWebMvc注解
+                        会导入一个@Import(DelegatingWebMvcConfiguration.class)，这个DelegatingWebMvcConfiguration类继承了
+                        WebMvcConfigurationSupport，所以导致我们的Web自动配置类中的组件不能生效
+                总结：第四种最常用
+            11.2)原理分析套路
+                导入场景starter -> xxxAutoConfiguration -> 使用@Bean导入了xxx组件 -> 绑定xxxProperties -> 绑定配置文件属性
+    数据访问
+        一，SQL
+            1，数据源的自动配置
+                1.1)导入数据库依赖
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-data-jdbc</artifactId>
+                    </dependency>
+                1.2)导入driver，数据库驱动，因为springboot并不知道你会使用哪个数据库，所以没给你导数据库驱动
+                    <dependency>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                    </dependency>
+                1.3)分析自动配置
+                    DataSourceAutoConfiguration：数据源的自动配置
+                        * 修改数据源相关的配置：spring.datasource
+                        * 数据库连接池的配置，容器中没有DataSource时，才自动配置连接池
+                        * 底层配置好的连接池是：HikariDataSource
+                    DataSourceTransactionManagerAutoConfiguration，事务管理器的自动配置
+                    JdbcTemplateAutoConfiguration，jdbcTemplate,springboot默认操作数据库的工具
+                        * 可以修改这个配置项@ConfigurationProperties(prefix = "spring.jdbc")，来修改jdbcTemplate
+                    XADataSourceAutoConfiguration，分布式事务相关的配置
+                    JndiDataSourceAutoConfiguration，jndi的自动配置
+            2，使用Druid数据源
+                2.1)druid的使用配置
+                    1)导入druid依赖
+                        <!--druid依赖-->
+                        <dependency>
+                            <groupId>com.alibaba</groupId>
+                            <artifactId>druid</artifactId>
+                            <version>1.1.8</version>
+                        </dependency>
+                    2)配置自定义的druid数据源，这会导致底层默认使用的HikariDataSource无效，因为@ConditionalOnMissingBean(DataSource.class)
+                        /*配置自定义数据源*/
+                        @ConfigurationProperties("spring.datasource")
+                        @Bean
+                        public DataSource dataSource(){
+                            DruidDataSource dataSource = new DruidDataSource();
+                            return dataSource;
+                        }
+                    3)测试
+                        @SpringBootTest(classes = MyApplication.class)
+                        public class DataSourceTest {
+                            @Autowired
+                            DataSource dataSource;
+
+                            @Test
+                            public void test1(){
+                                System.out.println(dataSource.getClass());
+                            }
+                        }
+                2.2)使用druid的内置监控页面
+                    1)配置druid监控功能，即向容器中加入StatViewServlet
+                        /*配置druid的监控页功能*/
+                        @Bean
+                        public ServletRegistrationBean statViewServlet(){
+                            StatViewServlet statViewServlet = new StatViewServlet();
+                            ServletRegistrationBean<StatViewServlet> servletRegistrationBean = new ServletRegistrationBean<>(statViewServlet,"/druid/*");
+                            return servletRegistrationBean;
+                        }
+                    2)在DruidDataSource中开启监控
+                        DruidDataSource dataSource = new DruidDataSource();
+                        //开启druid的监控功能
+                        dataSource.setFilters("stat");
+                2.3)内置监控中的web和spring关联监控怎么配置?
+                    配置监控页中的Web应用
+                    /*配置WebStatFilter用于采集web-jdbc关联监控的数据*/
+                    @Bean
+                    public FilterRegistrationBean webStatFilter(){
+                        WebStatFilter webStatFilter = new WebStatFilter();
+                        FilterRegistrationBean<WebStatFilter> webStatFilterFilterRegistrationBean = new FilterRegistrationBean<>(webStatFilter);
+                        webStatFilterFilterRegistrationBean.setUrlPatterns(Arrays.asList("/*"));
+                        //排除掉静态资源和监控页的访问监控
+                        webStatFilterFilterRegistrationBean.addInitParameter("exclusions","*.js,*.jpg,*.css,/druid/*");
+                        return webStatFilterFilterRegistrationBean;
+                    }
+
+                    配置监控中的spring监控，查看容器中的组件
+                2.4)配置监控中的sql防火墙
+                    直接在DruidDataSource中设置
+                    DruidDataSource dataSource = new DruidDataSource();
+                    //开启druid的监控功能和防火墙功能
+                    dataSource.setFilters("stat,wall");
+                2.5)配置监控页的账号密码
+                    /*配置druid的监控页功能*/
+                    @Bean
+                    public ServletRegistrationBean statViewServlet(){
+                        StatViewServlet statViewServlet = new StatViewServlet();
+                        ServletRegistrationBean<StatViewServlet> servletRegistrationBean = new ServletRegistrationBean<>(statViewServlet,"/druid/*");
+                        //增加监控页的账号密码
+                        servletRegistrationBean.addInitParameter("loginUsername","万一");
+                        servletRegistrationBean.addInitParameter("loginPassword","123765");
+                        return servletRegistrationBean;
+                    }
+                2.6)以上是自定义的方式，配置druid中各个功能，我们也可以使用starter方式，采用自动配置类的方式来自动配置以上功能
+                    1)导入starter场景依赖
+                        <!--druid_starter-->
+                        <dependency>
+                            <groupId>com.alibaba</groupId>
+                            <artifactId>druid-spring-boot-starter</artifactId>
+                            <version>1.1.17</version>
+                        </dependency>
+                    2)分析自动配置
+                        * 扩展配置项，通过在boot的配置文件中设置spring.datasource.druid
+                        * 在DruidDataSourceAutoConfigure自动配置类中，导入了以下组件
+                            @Import({DruidSpringAopConfiguration.class,
+                                    DruidStatViewServletConfiguration.class,
+                                    DruidWebStatFilterConfiguration.class,
+                                    DruidFilterConfiguration.class})
+                            - 其中DruidSpringAopConfiguration.class作用是配置监控页中的spring监控(监控springBean的)
+                                其中属性的绑定是通过spring.datasource.druid.aop-patterns进行设置
+                            - DruidStatViewServletConfiguration.class,监控页的配置，
+                                通过修改spring.datasource.druid.stat-view-servlet属性进行设置
+                            - DruidWebStatFilterConfiguration.class,配置监控页中的Web应用，
+                                通过修改spring.datasource.druid.web-stat-filter属性进行设置
+                            - DruidFilterConfiguration.class，所有druid自己filter的配置
+                                通过修改下面配置进行设置对应功能
+                                private static final String FILTER_STAT_PREFIX = "spring.datasource.druid.filter.stat";
+                                private static final String FILTER_CONFIG_PREFIX = "spring.datasource.druid.filter.config";
+                                private static final String FILTER_ENCODING_PREFIX = "spring.datasource.druid.filter.encoding";
+                                private static final String FILTER_SLF4J_PREFIX = "spring.datasource.druid.filter.slf4j";
+                                private static final String FILTER_LOG4J_PREFIX = "spring.datasource.druid.filter.log4j";
+                                private static final String FILTER_LOG4J2_PREFIX = "spring.datasource.druid.filter.log4j2";
+                                private static final String FILTER_COMMONS_LOG_PREFIX = "spring.datasource.druid.filter.commons-log";
+                                private static final String FILTER_WALL_PREFIX = "spring.datasource.druid.filter.wall";
+                                private static final String FILTER_WALL_CONFIG_PREFIX = "spring.datasource.druid.filter.wall.config";
+                    3)配置实例
+                        spring:
+                          datasource:
+                            url: jdbc:mysql://localhost:3306/wechat?serverTimezone=GMT&useSSL=false&characterEncoding=utf-8
+                            username: root
+                            password: 123765
+                            driver-class-name: com.mysql.cj.jdbc.Driver
+
+                            druid:
+                        #      开启监控和防火墙功能
+                              filters: stat,wall
+
+                        #      设置单个filter功能细节,例如对filter的详细配置
+                              filter:
+                                wall:
+                                  config:
+                                    drop-table-allow: false
+
+                        #      监控页的配置
+                              stat-view-servlet:
+                                enabled: true
+                                login-username: 万一
+                                login-password: 8008208820
+
+                        #      配置监控页中的Web应用
+                              web-stat-filter:
+                                enabled: true
+                                url-pattern: /*
+                                exclusions: '*.js,*.jpg,*.css,/druid/*'
+
+                        #      开启监控页中的spring监控功能，监控spring这个包下的所有组件
+                              aop-patterns: world.keyi.boot.*
+            3，整合Mybatis操作
+                0)导场景包
+                    <!--mybatis场景包-->
+                    <dependency>
+                        <groupId>org.mybatis.spring.boot</groupId>
+                        <artifactId>mybatis-spring-boot-starter</artifactId>
+                        <version>2.1.4</version>
+                    </dependency>
+                1)配置模式
+                    * 全局配置文件
+                    * SqlSessionFactory:在MybatisAutoConfiguration中自动配置好了
+                    * SqlSession:自动配置了SqlSessionTemplate组合了SqlSession
+                    * 使用@Import({MybatisAutoConfiguration.AutoConfiguredMapperScannerRegistrar.class})
+                        扫描所有的Mapper文件进容器中
+                    * Mapper:只要我们写的操作Mybatis的接口标注了@Mapper,就会被自动扫描进容器
+                    * 通过修改boot配置文件中mybatis即可修改mybatis中功能
+                    * 通过mybatis.config-location=classpath:mybatis/mybatis-config.xml指定全局配置文件位置
+                    * 通过mybatis.mapper-locations=classpath:mybatis/mapper/*.xml指定mapper映射文件的位置
+                    * 通过修改mybatis.configuration.*下面的所有值，就相当于修改mybatis核心配置文件中的组件值
+                    * 可以不用写mybatis的核心配置文件/全局配置文件，使用boot配置文件中的mybatis.configuration.*，
+                        即可指定mybatis全局配置文件中的相关配置项
+                    配置模式下的mybatis使用步骤
+                        - 导入mybatis官方starter
+                        - 编写mapper接口，标注@Mapper注解
+                        - 编写Sql映射文件并绑定mapper接口
+                        - 在application.yaml中指定mapper配置文件的位置，以及指定全局配置文件的信息(建议，配置在mybatis.configuration)
+                2)注解模式
+                    * 注解模式指的是将sql语句写在接口文件中，这种方式不太推荐，毕竟如果查询一旦复杂取来，就涉及到动态sql，
+                        还是要使用Mapper文件。
+                    * 不过这里网课中提到了@Options注解，该注解标注在@Select或@Insert等注解上，
+                        用来给其他注解添加属性项的
+                    * 众所周知，使用mybatis时，每一个dao接口都需要使用@Mapper注解，从而让mybatis找到对应的Mapper.xml文件
+                        但是我们也可以在主应用程序上标识@MapperScan注解，指定mapper接口(dao文件)的位置，这样就不用在每一个
+                        mapper接口上都标注@Mapper注解
+                3)混合模式
+                    混合模式指的是，有些接口方法使用sql注解方式，有些接口方法使用配置文件的方式
+            4，整合Mybatis-plus完成CRUD
+                1)导包
+                    <!--mybatis-plus场景包-->
+                    <dependency>
+                        <groupId>com.baomidou</groupId>
+                        <artifactId>mybatis-plus-boot-starter</artifactId>
+                        <version>3.4.1</version>
+                    </dependency>
+                2)该场景包中的自动配置类
+                    * 核心自动配置类：MybatisPlusAutoConfiguration，参数绑定项，MybatisPlusProperties，
+                        mybatis-plus: xxx，就是对mybatis-plus的定制
+                    * SqlSessionFactory自动配置好，底层是容器中默认的数据源，如果配置了druid就为druid数据源
+                    * mapperLocations自动配置好的，有默认值，classpath*:/mapper/**/*.xml，
+                        任意包的类路径下的所有mapper文件夹下任意路径下的所有xml都是sql映射文件，建议以后sql映射文件，放在mapper下
+                    * 容器中也自动配置了sqlSessionTemplate
+                    * @Mapper标注的接口也会被自动扫描,或者在主类上使用@MapperScan
+                3)优点
+                    * 只需要我们的Mapper继承BaseMapper,就可以拥有crud能力
+                    * service接口层继承IService接口,service层实现类继承ServiceImpl类，实现service接口
+                        即可拥有绝大多数的增删改查方法。
+                    * 注意：要在实体类上使用@TableName注解标识实体类对应数据库中哪张表
+            5，使用mybatis-plus完成分页查询
+                使用案例见博客
+        二，NoSql
+            1，Redis自动配置
+                1)redis自动配置
+                    * redis的核心自动配置类，RedisAutoConfiguration，资源配置类，RedisProperties，对应boot配置文件为:spring.redis
+                    * 连接工厂是准备好的，LettuceConnectionConfiguration，JedisConnectionConfiguration,redis客户端，用来访问云redis
+                    * 自动注入了RedisTemplate<Object,Object>，用来操作redis，操作的key/value都是Object类型的
+                    * 自动注入了StringRedisTemplate,同上，只不过，该对象用来操作key/value都是string类型的数据
+                    * 底层我们只需要使用StringRedisTemplate,RedisTemplate就可以操作redis
+                2)配置阿里云redis步骤
+                    * 创建阿里云实例，读写分离版本，一个只读节点，大概1小时4毛钱
+                    * 申请公共地址，公网地址是网络上其他客户端都能访问到
+                    * 修改白名单，将127.0.0.1该成0.0.0.0/0，从只能本机访问，到其他任何客户端都能访问
+                    * 在账号管理的地方配置一个账号，用于连接redis数据库
+                    * 配置好后，可以使用redis可视化工具查看是否能连接redis成功
+                        host:阿里云配置的公网地址
+                        port:端口号，默认是6379
+                        auth:这个字段是密码，填的值是阿里云配置的 账号:密码
+                        name:连接名称，随便取
+                    * 通过redis可视化工具，可以查看连接是否成功，你也可以使用springboot连接redis数据库
+            2，RedisTemplate与Lettuce
+                1)导入redis-starter场景依赖
+                2)在boot中配置连接信息
+                    spring:
+                        redis:
+                            host: r-bp1sys4wwo5xzwy6vrpd.redis.rds.aliyuncs.com
+                            password: keyi:tgy153RFVHU14863
+                            port: 6379
+                3)测试
+                    @Test
+                    public void redisTest(){
+                        /*
+                            使用Lettuce客户端连接阿里云的redis数据库,从redis中读取数据
+                         */
+                        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+                        /*ops.set("万一","茜茜");
+                        String value = ops.get("万一");*/
+                        String value = ops.get("王科一");
+                        System.out.println(value);
+                    }
+            3，切换至jedis
+                1)导入jedis依赖，两个redis可以共存，Lettuce和jedis，只要在配置文件指定好使用的客户端类型就行
+                    <!--jedis客户端-->
+                    <dependency>
+                        <groupId>redis.clients</groupId>
+                        <artifactId>jedis</artifactId>
+                    </dependency>
+                2)在boot的配置文件中，指定使用的连接类型，使用哪一个redis客户端
+                    spring:
+                        redis:
+                            host: r-bp1sys4wwo5xzwy6vrpd.redis.rds.aliyuncs.com
+                            password: keyi:tgy153RFVHU14863
+                            port: 6379
+                            client-type: jedis
+                3)测试
+                    @Autowired
+                    RedisConnectionFactory connectionFactory;
+
+                    @Test
+                    public void redisTest2(){
+                        System.out.println(connectionFactory.getClass());
+                    }
+                    结果：class org.springframework.data.redis.connection.jedis.JedisConnectionFactory
+
+    单元测试
+        Junit5=Junit-Platform+Junit-Jupiter+Junit-Vintage
+        Junit-Platform：Junit-Platform是Junit开发的一个测试平台，不仅支持自家的junit自制的测试引擎，其他测试引擎也可以接入
+        Junit-Jupiter：Junit-Jupiter提供了Junit5的新的编程模型，是Junit5新特性的核心，内部包含一个测试引擎，用于在Junit-Platform上运行
+        Junit-Vintage：由于Junit已经发展多年，为了照顾老的项目，Junit-Vintage提供了兼容Junit4.x,Junit3.x的测试引擎
+        注意：Springboot2.4以上版本移出了默认对Vintage的依赖，如果需要兼容Junit4需要自行引入依赖(高版本中不能使用Junit4的功能)
+
+        1)SpringBoot整合junit后
+            * 编写测试方法，@Test标注(注意需要使用Junit5版本的注解，junit5版本的注解在jupiter包下)
+            * Junit类具有Spring的功能，@Autowired，比如@Transactional标注测试方法，测试完成后自动回滚
+        2)Junit5常用注解
+            * @Test:表示方法是测试方法，但是与Junit4的@Test不同，它的职责非常单一不能声明任何属性，扩展的测试将会由Jupiter提供额外测试
+            * @ParameterizedTest:表示方法是参数化测试
+            * @RepeatedTest:表示方法可重复执行，@RepeatedTest(5)，表示该测试方法运行5次
+            * @DisplayName:为测试类或者测试方法设置展示名称
+            * @BeforeEach:表示在每个单元测试之前执行
+            * @AfterEach:表示在每个单元测试之后执行
+            * @BeforeAll:表示在所有单元测试之前执行
+            * @AfterAll:表示在所有单元测试之后执行
+            * @Tag:表示单元测试类别，类似于Junit4中的@Categories
+            * @Disabled:表示测试类或测试方法不执行，类似于Junit4中的@Ignore
+            * @Timeout:表示测试方法运行如果超过了指定时间将会返回错误
+            * @ExtendWith:为测试类或测试方法提供扩展类引用
+            * @SpringBootTest：在测试类上标注该注解，使得测试类拥有spring的功能，能都自动注入容器中组件
+        3)断言机制
+            断言(assertions)是测试方法中核心部分，用来对测试需要满足的条件进行验证，这些断言方法都是org.junit.jupiter.api.Assertions
+            的静态方法，Junit5内置的断言可以分成如下几个类别：
+            检查业务逻辑返回的数据是否合理
+            这部分太复杂，需要的时候再去网上搜吧
+            直接简单测试：
+                @Test
+                public void assertTest(){
+                    int num = cal(3, 4);
+                    //第一个参数是期待值，num是实际值
+                    Assertions.assertEquals(5,num);
+                }
+
+                public int cal(int a,int b){
+                    return a+b;
+                }
+                以上，我期待值是5，实际值给我返回7，不满足条件后，断言给我返回详细的报告
+                   org.opentest4j.AssertionFailedError:
+                   预期:5
+                   实际:7
+                assertEquals方法还可以传递一个message参数，如果报错后，则会打印message信息
+            简单断言(判断两个对象，数值是否相等或其他)，数组断言(判断两个数组是否相等)，组合断言(所有断言全部成功才算成功)
+            异常断言(判断一定会出现异常)，超时断言(业务逻辑执行时间一定在我预期之内，超出就算异常)
+            还有更多的断言方法尽在Assertions类中，都是静态方法。
+
+            当嵌套测试的时候，外层的测试不能驱动内层的@BeforeEach等测试方法，内层的测试方法可以驱动外层的@BeforeEach等测试方法
+            内层的测试方法需要标注@Nested注解
+        4)前置条件(assumptions)
+            Junit5中的前置条件类似于断言，不同之处在于不满足的断言会使得测试方法失败，而不满足的前置条件只会使得测试方法的执行终止
+            前置条件可以看成是测试方法执行的前提，当该前提不满足时，就没有继续执行的必要。
+            前置条件是Assumptions包下的静态方法，用来判断测试有没有执行的前置条件
+        5)参数化测试
+            它使得用不同的参数多次运行测试成为了可能
+            利用@ValueSource等注解，指定入参，我们将可以使用不同的参数进行多次单元测试，而不需要每新增一个参数就
+            新增一个单元测试，省去了很多冗余代码
+            @ValueSource:为参数化测试指定入参来源，支持八大基础类以及String类型，Class类型
+            @NullSource:表示为参数化测试提供一个null的入参
+            @EnumSource:表示为参数化测试提供一个枚举入参
+            @CsvFileSource:表示读取指定CSV文件内容作为参数化测试入参
+            @MethodSource:表示读取指定方法的返回值作为参数化测试入参(注意方法返回需要是一个流)
+
+            使用@ParameterizedTest注解标注在测试方法上，表示该测试方法是参数化测试
+            然后使用@ValueSource指定参数，使用每一个参数去多次执行测试方法，这就是参数化测试
+
+            junit5可以支持外部的各类入参，如CSV,YML,JSON文件，甚至方法的返回值也可以作为入参，只需要
+            去实现ArgumentsProvider接口，任何外部文件都可以作为它的入参
+    指标监控
+        监控应用程序内存占有率，容器中bean情况等等，就像druid的监控页面，不过springboot为我们提供数据形式由两种
+        一种是jmx的形式提供数据(默认大多数功能都是以jmx的形式提供的)，jmx是jdk的一个工具吧(应该是，反正类似于一个小工具)
+        另一种是http的形式提供数据(通过浏览器地址访问从而获得springboot指标监控的数据)，一般都是使用http/web的形式
+        要开启http的形式获取数据，就需要在boot配置文件中进行相应的配置(前提是先导入springboot指标监控的依赖场景包)
+        1)导入指标监控的场景依赖包
+            <!--指标监控功能场景依赖-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-actuator</artifactId>
+            </dependency>
+        2)配置指标监控设置，默认各个指标监控的数据以jmx的形式暴露出来，我们要设置成以http/web的形式暴露出来
+            #指标监控的设置
+            management:
+              endpoints:
+                enabled-by-default: true  #默认开启所有endpoint(功能)
+                web:
+                  exposure:
+                    include: '*'  #以web形式暴露所有端点(开启所有功能)
+        3)actuator中的endPoint(端点，http://localhost:8080/端点，即可查看提供的数据)
+            beans:显示应用程序中所有Spring Bean的完整列表
+            configProps:显示所有@ConfigurationProperties，各个配置信息
+            mappings:显示所有@RequestMapping路径列表
+            最常用的还是：
+                health:健康检查端点，一般用于在云平台，平台会定时的检查应用的健康状态，我们就需要health EndPoint
+                    可以为平台返回当前应用的一系列组件健康状况的集合。重要的几点如下
+                    * health endpoint返回的结果，应该是一系列健康检查后的一个汇总报告
+                    * 很多的健康检查默认已经自动配置好了，比如数据库，redis
+                    * 可以很容易的添加自定义的健康检查机制
+                    一个应用是否健康，取决于其中各个模块，全部模块健康才算健康，
+                    通过management.endpoint.xxx可以对指定的endpoint进行详细配置
+                    例如：
+                    management:
+                        endpoint:
+                              health:
+                                show-details: always   #开启健康详细报告
+                metrics:运行时指标，提供详细的，层级的，空间指标信息，这些信息可以被pull(被动获取)或者push(主动推送)方式得到
+                loggers:日志记录
+            除了使用enabled-by-default: true，开启或关闭监控信息，也可以在每一个endpoint使用enabled开关监控信息
+        4)定制health的endpoint(监控信息)
+            例如，查看health(健康信息时)只有默认三个健康信息，db,diskSpace,ping，我们也可以自定义健康信息
+            自定义类继承AbstractHealthIndicator,该抽象类实现HealthIndicator接口，自定义类名后缀必须是HealthIndicator,
+            例如：
+                @Component
+                public class KeyiHealthIndicator extends AbstractHealthIndicator {
+
+                    @Override
+                    protected void doHealthCheck(Health.Builder builder) throws Exception {
+                        /*
+                            这里进行逻辑判断后，将数据带给health，一起被展示
+                         */
+                        HashMap<String, Object> map = new HashMap<>();
+                        if (1==1){
+                            map.put("keyi","健康强壮");
+                            builder.up();   //表示组件健康
+                        }else {
+                            map.put("keyi","虚脱瘦弱");
+                            builder.down(); //表示组价不健康
+                        }
+                        builder.withDetail("xixi","茜茜哈哈").withDetails(map);
+                    }
+                }
+                则通过http方式查看health时，就会看我们自己定义的组件，名字为keyi,数据也会被带入
+                keyi: {status: "UP", details: {xixi: "茜茜哈哈", keyi: "健康强壮"}}
+            可见，定制其他endpoint内容也是按照上面的形式去自定义的，当我们的组件被设置为dowm时，整个health都为down状态
+        5)定制info信息(endpoint)
+            1)默认情况下，info什么也没有，你可以在boot配置文件中配置info的信息，当访问info端点时，信息就会被展示
+                例如：
+                    info:
+                      information: 该项目隶属于太阳系->地球->中国->江西->九江->彭泽->南阳村->欧阳建生的外孙->王科一
+                info下的key值随便填
+            2)我们也可以获取maven中的配置信息，放入info中
+                info:
+                  information: 该项目隶属于太阳系->地球->中国->江西->九江->彭泽->南阳村->欧阳建生的外孙->王科一  #自定义信息
+                  mavenVersion: @project.version@
+                  mavenArtifact: @project.artifactId@   #获取maven中的配置信息
+            3)以上方式是在boot配置文件中配置info信息，我们也可以使用自定义类实现InfoContributor接口
+                来配置info中的信息，使用方式和上面的HealthIndicator差不多
+        6)自定义metrics信息
+            应用范围：例如检测某个service方法被执行多少次
+            例如：
+                @Service
+                @Slf4j
+                public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements UserService {
+
+                    UserMapper userMapper;
+
+                    Counter counter;
+
+                    //注入MeterRegistry组件
+                    @Autowired
+                    public UserServiceImpl(UserMapper userMapper, MeterRegistry meterRegistry) {
+                        this.userMapper = userMapper;
+                        //counter方法用来计数，string参数是metrics的name名
+                        counter = meterRegistry.counter("UserServiceImpl.getUserByEmail.count");
+                    }
+
+                    public User getUserByEmail(String email){
+                        log.info("UserService:{}",email);
+                        //自增+1
+                        counter.increment();
+                        return userMapper.getUserByEmail(email);
+                    }
+                }
+            完成的功能，对getUserByEmail方法的监控，统计该方法调用的次数，并在metrics中以name为UserServiceImpl.getUserByEmail.count
+            的形式显示出来，我们访问metrics/UserServiceImpl.getUserByEmail.count，就能获取到被访问的次数
+        7)以上是对现有的端点(endpoint)添加数据项，以下是关于直接新增一个端点
+            @Component
+            @Endpoint(id="keyi")    //指定端点名
+            public class MyServiceEndPoint {
+
+                @ReadOperation
+                public Map getSomeInfo(){
+                    //访问actuator/keyi时，就会显示以下数据项
+                    return Collections.singletonMap("万一","茜茜");
+                }
+
+                @WriteOperation
+                public void writeSomeInfo(){
+                    System.out.println("一袋米要抗几楼");
+                }
+            }
+    原理解析
+        1，Profile功能
+            1)定义：切换多环境的功能
+                * 默认配置文件 application.yaml,任何时候都会加载
+                * 指定环境配置文件 application-xxx.yaml
+                * 激活指定环境
+                    - 配置文件激活
+                        只需要在boot配置文件中，通过spring.profiles.active=xxx，即可达到切换环境的功能
+                        配置文件方式激活环境的规则：springboot会加载默认配置文件和附加的环境配置文件，如果配置有冲突，以环境配置文件的数据项为准
+                    - 命令行激活
+                        将项目打成jar包后，如果这个时候还想切换环境配置文件，可以使用命令行的方式
+                        java -jar 项目jar包 --spring.profiles.active=test
+                * 默认配置与环境配置同时生效
+                * 同名配置项，profile配置优先
+            2)@Profile条件装配功能
+                使用@Profile注解，标注在类上或者方法上(带有@Bean),value值是指定的环境名，只有当前环境时才会向容器中注册组件
+            3)profile分组
+                为环境设置分组，一个组内有多个环境配置，激活时只需要激活这个组即可
+                spring.profiles.group.production[0]=prod
+                spring.profiles.group.production[1]=test
+                为production组添加两个环境，激活组，即可使得该组内的环境配置都生效
+                spring.profiles.active=production
+        2，外部化配置
+            1)外部配置源
+                定义：将代码中信息抽取成外部文件的方式，就是外部化配置
+                常用：java属性文件，yaml文件，环境变量，命令行参数
+            2)配置文件查找位置
+                * classpath 根路径
+                * classpath 根路径下config目录
+                * jar包当前目录
+                * jar包当前目录的config目录
+                * /config子目录的直接子目录(好像是必须在linux的/下的config文件夹)
+            3)配置文件加载顺序
+                1)当前jar包内部的application.properties和application.yaml
+                2)当前jar包内部的application-xxx.properties和application-xxx.yaml
+                3)引用的外部jar包的application.properties和application.yaml
+                4)引用的外部jar包的application-xxx.properties和application-xxx.yaml
+            4)指定环境优先，外部优先，后面的可以覆盖前面的同名数据项
+        3，自定义starter
+            1)starter启动原理
+                我们引入的spring-boot-starter-xxx都是封装好的场景启动器，一般来说，引入一个xxx-starter场景，就是引入
+                一个项目，这个项目的pom依赖中有各种其他的依赖，比如该项目的自动装配依赖，所有我们需要再创建一个xxxAutoConfigure项目
+                在这个xxxAutoConfigure项目中创建自动装配类，并进行资源绑定等等，最后在resources/META-INF/创建spring.factories文件
+                整个自定义starter就准备好了，后期只需要引入xxx-starter项目。就能使得自动装配类自动为我们注册组件，从而方便开发
+            2)自定义starter
+                2.1)创建一个starter项目，作为整体的，供外部引用的场景依赖包。在该项目的pom文件中引入含有自动配置类的项目GAV
+                    创建项目为:keyi-info-spring-boot-starter
+                2.2)创建一个自动配置项目，提供自动装配类，资源绑定，核心功能组件注册。
+                    创建项目为：keyi-info-spring-boot-starter-autoconfigure
+                    * 创建资源配置文件：KeYiInfoProperties
+                        @ConfigurationProperties("keyi")
+                        public class KeYiInfoProperties {
+                            private String name;
+                            private String age;
+                            private String email;
+                            private String tel;
+                            private String information;
+                            //省略getter，setter方法
+                        }
+                    * 创建核心功能组件，该对象要提供核心功能，KeYiInfo
+                        public class KeYiInfo {
+                            @Autowired
+                            private KeYiInfoProperties keYiInfoProperties;
+
+                            public void getInfo(){
+                                System.out.println("姓名："+keYiInfoProperties.getName());
+                                System.out.println("年龄："+keYiInfoProperties.getAge());
+                                System.out.println("邮箱："+keYiInfoProperties.getEmail());
+                                System.out.println("电话："+keYiInfoProperties.getTel());
+                                System.out.println("简介："+keYiInfoProperties.getInformation());
+                            }
+                        }
+                    * 创建自动配置类，用来注册核心组件，KeYiInfoAutoConfigure
+                        @Configuration
+                        @EnableConfigurationProperties(KeYiInfoProperties.class)
+                        public class KeYiInfoAutoConfigure {
+
+                            @Bean
+                            @ConditionalOnMissingBean(KeYiInfo.class)
+                            public KeYiInfo keYiInfo(){
+                                return new KeYiInfo();
+                            }
+                        }
+                2.3)在自动配置项目中的resources/META-INF下创建spring.factories文件，设置自动配置类为自动装配
+                    org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+                    world.keyi.auto.KeYiInfoAutoConfigure
+                2.4)使用maven的build插件，将两个项目打包进本地仓库，当需要使用该starter场景时，
+                    直接引入starter项目的GAV依赖，然后代码中即可使用自动配置类为我们注册的组件了
+                    @Autowired
+                    KeYiInfo keYiInfo;
+
+                    @Test
+                    public void starterTest(){
+                        keYiInfo.getInfo();
+                    }
+
+        4，SpringBoot原理总结
+            1)SpringBoot启动过程
+                1.1)创建SpringApplication
+                    * 创建SpringApplication的过程就是把一些关键的组件，从spring.factories文件中读取出来保存到SpringApplication中
+                    * 它会判断当前应用的类型，使用ClassUtil,检测当前应用是servlet，还是reactive响应式
+                    * 为SpringApplication中bootstrappers赋值，bootstrapper是初始启动引导器(List<bootstrapper>)
+                        会去spring.factories中查找org.springframework.boot.Bootstrapper
+                    * 还会去spring.factories中找ApplicationContextInitializer,为属性initializers赋值，[重要]
+                    * 最后去spring.factories中找ApplicationListener,应用监听器，为属性listeners赋值，[重要]
+                1.2)运行SpringApplication
+                    * StopWatch,记录应用的启动时间
+                    * 创建引导上下文(Context环境) createBoostrapContext()
+                        - 获取到所有之前的bootstrappers,挨个执行initialize(),来完成对引导启动器上下文环境设置
+                    * 让当前应用进入headless模式，java.awt.headless
+                    * 获取所有RunListener(运行监听器)[为了方便所有Listener进行事件感知]
+                        - getSpringFactoriesInstances去spring.factories找SpringApplicationListener
+                    * 遍历SpringApplicationRunListener,调用starting方法，[重要]
+                        相当于通知所有感兴趣系统正在启动过程的监听器，项目正在starting
+                    * 保存命令行参数，ApplicationArguments
+                    * 准备环境 prepareEnvironment()
+                        - 返回或创建基础环境信息对象，StandardServletEnvironment
+                        - 配置环境信息对象
+                            + 读取所有的配置源的配置属性值
+                        - 绑定环境信息
+                        - 监听器调用listener.environmentPrepared();通知所有的监听器当前环境准备完成
+                    * 创建IOC容器(createApplicationContext())
+                        - 根据项目类型(servlet)创建容器
+                        - 当前会创建AnnotationConfigServletWebServerApplicationContext
+                    * 准备ApplicationContext IOC容器的基本信息 preparedContext()
+                        - 保存环境信息
+                        - IOC容器的后置处理流程
+                        - 应用初始化器，applyInitializers
+                            + 遍历所有的ApplicationContextInitializer,调用initialize,来对ioc容器进行初始化扩展功能
+                        - 遍历所有的listener调用contextPrepared,EventPublishRunListener,通知所有的监听器contextPrepared
+                        - 所有的监听器 调用contextLoaded,通知所有的监听器contextLoaded
+                    * 刷新IOC容器 refreshContext
+                        - 创建容器中的所有组件（特别重要，spring注解视频有讲）
+                    * 容器刷新完成后的工作，afterRefresh
+                    * 所有监听器调用listeners.started(context),通知所有的监听器，执行它们的started方法
+                    * 调用所有Runners,callRunners()
+                        - 获取容器中的ApplicationRunner，[重要]
+                        - 获取容器中的CommandLineRunner，[重要]
+                        - 合并所有runner并按照@Order进行排序
+                        - 遍历所有的runner，调用run方法
+                    * 如果以上有异常
+                        - 调用listener的failed
+                    * 调用所有监听器的running方法 listeners.running(context),通知所有监听器running
+                    * running如果有问题，继续通知所有监听器的failed方法
+            2)Application Events and Listeners
+                重要组件：
+                    2.1)ApplicationContextInitializer
+                    2.2)ApplicationListener
+                    2.3)SpringApplicationRunListener,自定义这个组件的时候需要有一个构造参数接收SpringApplication和args参数
+                        以上三个组件都需要在spring.factories中进行配置。
+                    2.4)ApplicationRunner
+                    2.5)CommandLineRunner
+            3)ApplicationRunner与CommandLineRunner
+                这两个组件，如果是自定义都需要放入容器中，主要是用于应用启动时做一个一次性的事情。
