@@ -1,0 +1,780 @@
+概述
+    数据库DB，数据库管理系统DBMS，数据库系统DBS，数据库管理员，DBA
+    常见的数据库管理系统：mysql,oracle,sql server
+    数据库管理系统执行sql语句操作数据库
+
+在window操作系统当中，怎么使用命令来启动和关闭mysql服务呢？
+    语法：net stop 服务名称   net start 服务名称
+
+mysql常用命令
+    登录mysql:mysql -uroot -p密码
+    退出mysql:exit
+    查看mysql中有哪些数据库:show database;
+    使用某个数据库:use 数据库名
+    创建数据库:create database 数据库名
+    不看表中数据，只看表结构:desc 表名;(desc是describe缩写，描述)
+    查看mysql数据库版本号:select version();
+    查看当前使用哪一个数据库:select database();
+    展示创建表时的sql语句：show create table 表名;
+
+数据库中的表，table
+    任何一张表都有行和列
+    行(row)：被称为数据/记录
+    列(column)：被称为字段，每一个字段都有：字段名，数据类型(数字,字符串...)，约束(主键约束,唯一性约束...)等属性
+
+sql语句的分类
+    DQL:数据查询语言(凡是带有select关键字的都是查询语句,select....)
+    DML:数据操作语言(凡是对表当中的数据进行增删改查的都是DML,insert,delete,update)
+    DDL:数据定义语言(凡是带有create,drop,alter的关键字都是DDL,DDL主要操作的是表结构，而不是表中的数据)
+        create:新建    drop:删除    alter:修改
+    TCL:事务控制语言(包括事务提交:commit，事务回滚:rollback)
+    DCL:数据控制语言(授权grant，撤销权限revoke)
+
+查询
+    1，简单查询
+        select 字段名1 as 别名,字段名2 from 表名
+        as是起别名关键字，给列字段起别名，你也可以不加as 直接字段名 别名，使用空格隔开
+
+        select * from 表名，查看表中所有数据，*会转成字段名，实际开发中效率低，可读性差
+
+        注意：在所有数据库当中，字符串统一使用单引号括起来，单引号是标准，双引号在oracle数据库中用不了。
+
+        字段可以使用数学表达式：select name,sal*12 as yearSal from emp
+        如果别名是中文要用单引号括起来
+    2，条件查询
+        定义：查出符合条件的数据
+        语法格式：select 字段名 from 表名 where 条件;
+        条件种类：
+            =         等于
+            <>或!=    不等于
+            <         小于
+            <=        小于等于
+            >         大于
+            >=        大于等于
+            between ... and ...     两个值之间，等同于 >= and <=
+                注意：使用between and时，数值遵循左小右大，即between 小 and 大
+            is null   为空(is not null 不为空)
+                查询某些字段值为null,=不能查null,需要使用is null
+            and       并且
+            or        或者
+                注意：and和or同时出现是，and优先级高，要想让or先执行，需要加小括号()
+            in        包含，相当于多个or(not in 表示不在这个范围)
+                注意：in后面不是一个区间，in后面跟的是具体的值，
+                select name,sal from emp where sal in(800,5000),查询工资为800和5000的员工
+            not       可以取非，主要用在is或in中
+            like      模糊查询，支持%或下划线匹配，%匹配任意个字符，下划线_，一个下划线匹配一个字符
+                如果查出名字带有_的员工，因为_有特殊含义，所以使用转义字符\_就表示字符'_'
+    3，排序
+        单个字段排序
+            order by 字段名        默认升序
+            order by 字段名 desc   指定降序
+            order by 字段名 asc    指定升序
+        多个字段排序
+            要求先按照薪资升序，如果薪资一样，再按照名字升序排序
+            select name,sal from emp order by sal asc,name asc;
+            sal在前，起主导，只有sal相等的时候，才会考虑启用name排序
+        了解，根据字段的位置进行排序
+            select name,sal from emp order by 2
+            2表示第二列，第二列是sal，表示按照sal排序
+        查询语句循序：select 字段 from 表名 where 条件 order by
+    4，数据处理函数/单行处理函数
+        单行处理函数特点：一个输入对应一个输出，例如处理14行数据，返回结果也是14行数据，处理每一行中的数据
+        常见的单行处理函数
+            lower:转换小写
+                select lower(name) as '姓名' from emp    将查询出来的姓名转成小写，查出14条数据，经过函数处理，返回14条数据
+            upper:转换大写
+            substr:取子串(substr(被截取的字符串,起始下标,截取的长度))
+                select substr(name,1,1) as '姓名首字母' from emp     查询数据中姓名的首字母，起始下标从1开始，没有0
+                案例：找出员工名字第一个字母是A的员工信息，有两种方式
+                    1)select name from emp where name like 'A%'
+                    2)select name from emp where substr(name,1,1) = 'A'
+            length:取长度  length(name)
+            concat:字符串的拼接,数值字段和字符串字段都能当做字符串拼接
+                案例：将姓名首字母转大写
+                select concat(upper(substr(name,1,1)),lower(substr(name,2,length(name)-1))) from emp
+            trim:去除前后空格
+            str_to_date:将字符串varchar类型转换成date类型，通常使用在insert语句中，因为需要将字符串转成date类型
+                str_to_date('字符串日期','日期格式')，如果插入的日期格式是%Y-%m-%d，则mysql数据库自动将字符串转成date类型数据
+            date_format:将date类型转换成具有一定格式的varchar字符串类型，该函数可以将日期类型转换成特定格式的字符串。
+                与str_to_date函数不同的是，这个函数用于查询日期数据时指定想要的日期格式
+                select id,name,date_format(birth,'%m/%d/%Y') as birth from t_user
+                不指定想要的日期格式的话，输出时输出%Y-%m-%d格式，和上面类似。
+            TIMESTAMPDIFF：这个函数用于计算两个时间的时间差，TIMESTAMPDIFF(YEAR,第一个时间，第二个时间)
+            format:设置千分位
+                格式化数字:format(数字，'格式')，设置千分位，格式为'$999.999'
+                案例：select name,format(sal,'$999.999') from emp
+            round:四舍五入
+                注意：如果查询的时候，使用字面量/常量代替字段名查询，则查出的字段全部是常量
+                     select 1000 from emp    查出的所有数据全部是1000
+                select round(1234.567,0) from emp
+                第二个参数表示保留小数位，0表示将数据保留至整数位
+                以上sql则输出的数据全是1234
+            rand():生成随机数
+                案例:生成100以内的随机数
+                select round(rand()*100,0) from emp
+            ifnull:可以将null转换成一个具体值
+                ifnull是空处理函数，专门处理空的
+                在所有数据库当中，只要有null参与的数学运算，最终结果就是null,为了避免这个现象，需要使用ifnull函数
+                ifnull函数用法：ifnull(数据，被当做哪个值)，如果数据为null，则被当做哪个值处理
+                案例：年薪=(工资+补助)*12  ,当补助为null时，就要使用ifnull函数，把null当做0处理
+                select name, (sal+ifnull(comm,0))*12 as yearSal from emp
+            case..when..then..when..then..else..end
+                案例：当员工的工作岗位是MANAGER的时候，工资上调10%，当工作岗位是SALESMAN的时候，工资上调50%，其他正常
+                (注意：不修改数据库，只是将查询结果显示为工资上调)
+                select name,job,sal oldSal,
+                (case job when 'MANAGER' then sal*1.1 when 'SALESMAN' then sal*1.5 else sal end) as newSal
+                from emp
+
+    5，分组函数/聚合函数/多行处理函数
+        多行处理函数特点：多个输入，对应一个输出，例如处理14条数据，返回一条数据，向sum函数等等，都是处理多行数据
+        多行处理函数种类：
+            count:取得记录数
+            sum:求和
+            avg:取平均
+            max:取最大的数
+            min:取最小的数
+            注意：
+                1)分组函数在使用的时候必须先进行分组，然后才能用，如果你没有对数据进行分组，则整张表默认作为一组
+                2)分组函数自动忽略空值(null)，例如：select count(comm) from emp，表示统计comm这个字段不为空的元素总数
+                3)分组函数中count(*)和count(具体字段)有什么区别？
+                    count(*)，统计整个表中的总行数
+                    count(具体字段)，统计在该字段下，不为null的元素的总数
+                4)分组函数不能够直接使用在where子句中，因为此时执行where条件时，还没有分组，所以不能使用分组函数
+                    分组函数要先分组之后才能使用
+                5)所有的分组函数可以组合起来一起使用
+                    select sum(sal),min(sal),max(sal),avg(sal),count(*) from emp
+    6，分组查询(非常重要)
+        定义：在实际的应用中，可能需要对数据先分组，然后再对每一组的数据进行操作，这个时候就要使用到分组查询
+        分组查询主要涉及到两个子句，分别是group by和having
+        语法：select ... from ... group by ...
+
+        总计以上所学关键字的顺序：select ... from ... where ... group by... order by...
+        以上关键字的顺序不能颠倒，sql语句执行顺序是from>where>group by>select>order by
+        即，先查表，再根据条件筛选数据，再对数据进行分组，再对每组数据进行处理，最后给数据排序
+
+        重点结论：在一条select语句当中，如果有group by语句的话，
+            select后面只能跟:参加分组的字段，以及分组函数，其他字段一律不能跟。
+        案例：
+            找出每个部门的最高薪资
+                SELECT deptno,MAX(sal) FROM emp GROUP BY deptno
+            找出每个工作岗位中的薪资和
+                SELECT job,SUM(sal)  FROM emp GROUP BY job
+            找出每一个部门中每一个岗位的最高薪资
+                SELECT deptno,job,MAX(sal) FROM emp GROUP BY deptno,job ORDER BY deptno
+        分组函数不能用在where的后面的原因
+            按照各个关键字的执行顺序，where的条件句执行时，数据还没有进行分组，所以不能使用分组函数
+            而select后可以使用分组函数是因为此时已经分组完毕，如果你没有分组，则默认将整张表作为一组
+
+        使用having可以对分完组之后的数据进一步过滤，having不能单独使用，having不能代替where，
+        having必须和group by联合使用
+        优化策略：where和having，优先选择where，都是筛选数据，肯定先筛选好，where完成不了的，才选择having
+
+        where完成不了的查询：找出每个部门平均薪资，要求显示平均薪资高于2500的
+            SELECT deptno,AVG(sal) FROM emp GROUP BY deptno HAVING AVG(sal)>2500
+    7，单表查询编写顺序；select...from...where...group by...having...order by...limit...
+        执行顺序：from>where>group by>having>select>order by>limit
+        从某张表中查询数据，先经过where条件筛选选出有价值的数据，对这些有价值的数据进行分组
+        分组之后可以使用having继续筛选，select查询出来，最后排序输出
+    8，把查询结果去除重复记录
+        原表数据不会被修改，只是查询结果去重
+        去重需要一个关键字：distinct
+        //distinct只能出现在所有字段的最前方
+        select name,distinct job from emp  这条sql语句就有语法问题
+        //distinct出现在job,deptno两个字段的之前，表示两个字段联合起来去重
+        select distinct job,deptno from emp
+        总结：distinct只能出现在所有字段最前面，后跟1个字段表示根据该字段去重，后跟多个字段表示联合去重
+
+连接查询
+    1，定义：多张表联合起来查询数据，被称为连接查询
+    2，连接查询分类
+        根据语法的年代分类
+            SQL92：1992年的时候出现的语法
+            SQL99：1999年的时候出现的语法
+        根据表连接的方式分类：
+            内连接
+                等值连接
+                非等值连接
+                自连接
+            外连接
+                左外连接(左连接)
+                右外连接(右连接)
+            全连接
+    3，笛卡尔积现象
+        定义：当两张表进行连接查询时，没有任何条件的限制会造成笛卡尔积现象，表中每一条记录都与另一张表中每一条记录相连接
+            这种连接毫无意义。
+        怎么避免笛卡尔积现象？
+            连接时加入条件，满足这个条件的记录被筛选出来:
+            SELECT ename,dname FROM emp,dept WHERE emp.`DEPTNO`=dept.`DEPTNO`
+            注意：指定条件查询方式，在匹配的过程中，匹配的次数并没有减少
+    4，内连接之等值连接(表连接的条件是等量关系)
+        案例：还是查询每个员工所在的部分名称，显示员工名和部门名
+            SQL92语法：
+                SELECT ename,dname FROM emp,dept WHERE emp.`DEPTNO`=dept.`DEPTNO` and 其他条件
+            SQL99语法：
+                SELECT e.ename,d.dname FROM emp e [inner]join dept d on e.`DEPTNO`=d.`DEPTNO` where 其他条件
+            SQL92的缺点，结构不清晰，表连接的条件与其他筛选条件放在一起，而SQL99的语法中，on后面的是表连接条件
+            如果还想加其他条件，使用where子句，结构更加清晰
+    5，内连接之非等值连接
+        案例：找出每个员工的薪资等级，要求显示员工名，薪资，薪资等级
+            SELECT e.ename,e.sal,s.grade FROM emp e JOIN salgrade s ON e.sal BETWEEN s.losal AND s.hisal
+        表连接的条件不是等量关系，则被称为非等值连接
+    6，内连接之自连接
+        案例：查询员工的上级领导，要求显示员工名和对应的领导名
+            SELECT e.ename '员工',e2.ename '领导' FROM emp e JOIN emp e2 ON e.`MGR`=e2.`EMPNO`
+        技巧：自连接，要把一张表看成两张表
+    7，外连接
+        内连接指显示满足表条件的数据，只有都满足才显示该数据
+        外连接，有主次表之分，left join表示左边表为主表，right join 表示右边表为主表
+            外连接要查出主表的全部数据，顺带按照条件查出次表的数据，如果次表中有些数据匹配不上主表，则显示null
+
+        带有right的是右外连接，又叫右连接，left同理，任何一个右连接都有左连接的写法，反之亦然。
+
+        外连接的查询结果条数一定是大于内连接的查询结果条数
+
+        案例：查询每个员工的上级领导，要求显示所有员工的名字和领导名
+            SELECT e.ename '员工',e2.ename '领导' FROM emp e LEFT JOIN emp e2 ON e.`MGR`=e2.`EMPNO`
+    8，三张表，四张表怎么连接？
+        SQL99语法：select...from a
+                    [left/right]join b on a和b的连接条件
+                    [left/right]join c on a和c的连接条件
+                    [left/right]join d on a和d的连接条件。。。。
+        一条sql中内连接和外连接可以混合使用，都可以出现，
+        案例：找出每个员工的部门名称以及工资等级，要求显示员工名，部门名，薪资，薪资等级
+            SELECT emp.ename,dept.dname,emp.sal,salgrade.grade FROM emp
+            JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+            JOIN salgrade ON emp.`SAL` BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+        案例：找出每个员工的部门名称以及工资等级，要求显示员工名，部门名，薪资，薪资等级，上级领导
+            SELECT emp.ename '员工',dept.dname,emp.sal,salgrade.grade,e2.ename '领导' FROM emp
+            JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+            JOIN salgrade ON emp.`SAL` BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+            LEFT JOIN emp e2 ON emp.`MGR`=e2.`EMPNO`
+
+子查询
+    1，定义：select语句中嵌套select语句，被嵌套的select语句称为子查询
+    2，子查询可以出现的位置
+        select ..(select) from ..(select) where ..(select)
+    3，where子句中的子查询
+        案例:找出比最低工资高的员工姓名和工资
+            SELECT ename,sal FROM emp WHERE sal>(SELECT MIN(sal) FROM emp)
+    4，from子句中的子查询
+        注意：from后面的子查询，可以将子查询的查询结果当做一张临时表
+        案例：找出每个岗位的平均工资的薪资等级
+            SELECT a.`JOB`,salgrade.`GRADE`,a.asal '平均工资'
+            FROM (SELECT emp.`JOB`,AVG(emp.`SAL`) asal FROM emp GROUP BY emp.`JOB`) a
+            JOIN salgrade ON a.asal BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+        form关键在后的子查询可以当做一张表看待
+    5，select后面出现的子查询
+        注意：对于select后面的子查询来说，这个子查询只能一次返回一条结果
+        案例：查出员工姓名，部门编号以及所在的部门名
+            1)SELECT e.ename, e.deptno,(SELECT d.dname FROM dept d WHERE e.deptno=d.deptno) dname
+                FROM emp e
+            2)SELECT e.`ENAME`,e.`DEPTNO`,d.`DNAME` FROM emp e JOIN dept d ON e.`DEPTNO`=d.`DEPTNO`
+            显然第一种方式结构不是很清晰，还有缺陷，如果子查询返回结果多余一条就会报错
+
+union合并查询结果集
+    案例:查询工作岗位是MANAGER和SALESMAN的员工
+        1)SELECT job,ename FROM emp WHERE job='MANAGER' OR job='SALESMAN'
+        2)SELECT job,ename FROM emp WHERE job in ('MANAGER','SALESMAN')
+        3)SELECT job,ename FROM emp WHERE job='MANAGER'
+          UNION
+          SELECT job,ename FROM emp WHERE job='SALESMAN'
+    union的效率要高一些，对于表连接来说，每连接一次新表，则匹配的次数满足笛卡尔积，成倍的翻
+    但是union可以减少匹配的次数，在减少匹配次数的情况下，还可以完成两个结果集的拼接
+    union使用的时候的注意事项：
+        union在进行结果集合并的时候，要求两个结果集的列数相同。
+        在oracle的情况下，结果集合并时，要求不仅两个表查询结果的的列数相同，还要数据类型也要相同
+
+limit
+    limit是将查询结果集的一部分取出来，通常使用在分页查询当中
+    完整用法：limit startIndex,length
+        startIndex是起始下标，length是长度，起始下标从0开始
+    缺省用法：limit 5，这是取出前5条数据
+    案例：按照薪资降序，取出排名在前5名的员工
+        SELECT ename ,sal FROM emp ORDER BY sal DESC LIMIT 5
+        等价于：SELECT ename ,sal FROM emp ORDER BY sal DESC LIMIT 0,5
+    注意：mysql当中，limit是在order by之后执行
+    通用分页公式：
+        limit (pageNum-1)*pageSize,pageSize
+        pageNum是前端传过来的页数，(pageNum-1)*pageSize就是数据的startIndex起始位置，pageSize是每次查询的条数
+
+表的创建,删除及字段的数据类型
+    1，建表的语法格式：(建表属于DDL语句，DDL包括：create,drop,alter)
+        create table 表明(
+            字段名1 数据类型,
+            字段名2 数据类型,
+            ...
+        );
+        表名：建议以t_或者tbl_开始，可读性强
+    2，mysql中常见的数据类型
+        varchar(最长255):可变长度的字符串，会根据实际的数据长度动态分配空间
+            优点：节省空间，缺点：需要动态分配空间，速度慢
+        char(最长255):定长字符串，不管实际的数据长度是多少，分配固定长度的空间去存储数据
+            优点：速度慢，缺点：使用不恰当的时候，可能会导致空间的浪费
+        int(最长11):数字中的整数型，等同于java的int
+        bigint:数字中的长整型，等同于java中的long
+        float:单精度浮点型数据
+        double:双精度浮点型数据
+        date:短日期类型，只包括年月日信息
+            mysql短日期默认格式：%Y-%m-%d
+        datetime:长日期类型，包括年月日时分秒信息
+            mysql长日期默认格式：%Y-%m-%d %h:%i:%s
+            在mysql当中怎么获取系统当前时间？ now()函数,并且获取的时间带有时分秒信息，是datetime类型
+            insert into t_user values(2,'lisi',now())
+        clob:字符大对象，最多可以存储4G的字符串
+            超过255个字符的都要采用CLOB字符大对象来存储，character large object
+        blob:二进制大对象，binary large object
+            专门用来存储图片，声音，视频等流媒体数据，往BLOB类型的字段上插入数据时，
+            例如插入一张图片，视频等，你需要使用IO流才行。
+        注意：数据库中有一条命名规范，所有的字段名(标识符)都是全部小写，单词与单词之间使用_下划线进行衔接
+    3，删除表
+        drop table t_student;   当这张表不存在时，执行该语句会报错
+        一般都是使用：drop table if exists t_student;  如果这张表存在就删除
+    4，快速创建表/快速复制表
+        create table emp2 as select * from emp;
+        把select查询结果当做一张表给创建出来，并且数据也有和emp中一样的数据
+        也可以使用查询结果临时表的一部分数据当做新表创建
+
+表结构的增删改(DDL语句)
+    表结构的增删改指的是：增加，修改，删除表中的字段
+    添加字段
+        alter table 表名
+            add 字段名 数据类型 约束;
+    删除字段
+        alter table 表名
+            drop 字段名;
+    修改字段
+        修改现有字段的数据类型，长度，约束
+            alter table 表名
+                modify 字段名 数据类型 约束;
+        修改现有字段名称
+            alter table 表名
+                change 旧字段名 新字段名 数据类型，约束;
+
+对数据的操作，增删改
+    1，插入数据
+        插入一条数据：insert into 表名(字段名1，字段名2，字段名3..) values(值1,值2,值3...)
+        插入多条数据：insert into 表名(字段名1，字段名2，字段名3..) values(值1,值2,值3...),(值1,值2,值3...),(值1,值2,值3...)
+        注意：
+            1)字段名和值要一一对应，即，数量和数据类型都要对应
+            2)insert语句但凡是执行成功了，那么必然会多一条记录，没有给其他字段指定值的话，默认值是null
+                指定默认值需要在建表的时候使用默认约束default
+    2,insert插入日期
+        insert into t_user(id,name,birth) values(1,'zhangsan','21-08-1998');，这种插入时不行的，因为birth类型是date
+        所以要使用str_to_date函数，可以将字符串转换成date类型，通常使用在insert语句中，因为需要将字符串转成date类型
+            str_to_date('字符串日期','日期格式')
+            mysql的日期格式：%Y 年    %m 月    %d 日    %h 时    %i 分    %s 秒
+        所以sql语句要改成以下：
+        insert into t_user(id,name,birth) values(1,'zhangsan',str_to_date('1998-08-21','%d-%m-%Y'));
+
+        注意：如果你提供的日期字符串是这种格式%Y-%m-%d,str_to_date函数就不需要写了
+        直接insert into t_user(id,name,birth) values(1,'zhangsan','1998-08-21');
+    3，修改update(DML)
+        语法格式：update 表名 set 字段名1=值1,字段名2=值2,字段名3=值3 where 条件
+        注意：没有条件限制会导致所有数据全部更新
+    4，删除数据delete(DML)
+        语法格式：delete from 表名 where 条件
+        注意：没有条件，整张表的数据会全部删除
+        delete语句删除数据特别慢，并且，虽然能删除表中数据，但数据所占的存储空间不会被释放，就像指针指向新的地址，原先地址数据还在
+        delete语句删除的数据还可以通过回滚找回。删除效率比较低，优点：可回滚数据
+    5，快速删除表中数据，truncate
+        truncate命令删除效率比较高，物理删除，表被一次截断，缺点是不支持回滚，优点是：快速
+        语法：truncate table 表名
+        这种操作属于DDL操作
+
+执行sql脚本文件
+    source sql文件全路径
+
+约束constraint
+    在创建表的时候，我们可以给表中的字段加入一些约束，来保证这个表中数据的完整性，有效性
+    常见的约束
+        非空约束：not null
+        唯一性约束：unique，约束的字段不能重复，但是可以为null,null不算重复
+            设置两个字段联合起来具有唯一性，并不能在每个字段都设置unique
+            而是添加：unique(字段1,字段2)，表示两个字段联合具有唯一性
+        主键约束：primary key，相当于unique+not null，两个字段联合起来做主键，叫做复合主键
+            实际开发中，不建议使用复合主键，一张表中主键约束只能有一个
+            主键的分类，除了分为单一主键，复合主键，还可以分为：
+                自然主键：主键值是一个自然数，和业务没关系
+                业务主键：主键值和业务紧密关联
+            实际开发中使用自然主键多
+            mysql中，有一种机制，可以帮助我们自动维护一个主键值，auto_increment,自增，以1开始递增1
+        外键约束：foreign key，保证外键值是安全的，其值一定是另一个表的主键值之一
+            语法:foreign key(本表外键) references 外表(外表主键)
+            字表中的外键引用的父表中的某个字段，被引用的这个字段不一定是主键，但必须具有唯一性unique约束
+            外键值可以为null
+        默认约束：default
+        自定义检查约束 check(在mysql中现在还不支持，8.0版本加入了check约束)
+    约束的添加
+        约束添加在字段(列)后，称为列级约束
+        约束没有添加在列后，被称为表级约束，需要多个字段联合起来添加某一约束时，需要使用表级约束
+        not null,只有列级约束，没有表级约束
+
+存储引擎
+    定义：存储引擎是一个表存储/组织数据的方式，不同的存储引擎，表存储数据的方式不同
+    在建表的时候，使用ENGINE来指定存储引擎，还可以指定默认字符集
+    例如：
+        CREATE TABLE `dept` (
+          `DEPTNO` int NOT NULL,
+          `DNAME` varchar(14) DEFAULT NULL,
+          `LOC` varchar(13) DEFAULT NULL,
+          PRIMARY KEY (`DEPTNO`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    mysql默认的存储引擎是InnoDB，默认的字符编码方式是utf8
+    查看mysql支持哪些存储引擎：show engines [\G]
+    mysql常用的存储引擎
+        MyISAM存储引擎
+            它管理的表具有以下特征：
+            使用三个文件表示每个表：
+                格式文件 - 存储表结构的定义(mytable.frm)，查看表结构 desc 表名
+                数据文件 - 存储表行的内容(mytable.MYD)
+                索引文件 - 存储表上索引(mytable.MYI)
+            这种存储引擎的优势：可被转换为压缩，只读表来节省空间,但它不支持事务机制，安全性低
+            对于一张表来说，只要是主键，或者加有unique约束的字段上会自动创建索引
+        InnoDB存储引擎
+            mysql默认的存储引擎，同时也是一个重量级的存储引擎
+            InnoDB支持事务，支持数据库崩溃后自动恢复机制，所以该存储引擎最主要的特点是安全
+            它管理的表具有下列主要特征：
+                1)每个InnoDB表在数据库目录中以.frm格式文件表示
+                2)InnoDB表空间tablespace被用于存储表的内容
+                3)提供一组用来记录事务性活动的日志文件
+                4)用COMMIT(提交)，SAVEPOINT及ROLLBACK(回滚)支持事务处理
+                5)提供全ACID兼容
+                6)在mysql服务器崩溃后提供自动恢复
+                7)多版本(MVCC)和行级锁定
+                8)支持外键及引用的完整性，包括级联删除和更新
+            InnoDB最大的特点是，它是mysql默认的存储引擎，且支持事务机制，以保证数据的安全，
+                但是效率不是很高，并且也不能压缩，不能转换为只读，不能很好的节省存储空间。
+        MEMORY存储引擎
+            使用MEMORY存储引擎的表，其数据存储在内存当中，且行的长度固定，
+            这两个特点使得MEMORY存储引擎非常快
+            MEMORY存储引擎管理的表具有下列特征：
+                1)在数据库目录内，每个表均以.frm格式的文件表示
+                2)表数据及索引被存储在内存中
+                3)表级锁机制
+                4)不能包含TEXT或BLOB字段
+            MEMORY存储引擎以前被称为HEAP引擎，堆引擎
+            这个引擎的优点，查询效率是最高的，缺点，不安全，关机之后数据消失，因为数据和索引都是在内存当中
+
+事务
+    定义：事务是一个完整的业务逻辑，事务内的所有操作，要么全部成功，要么全部失败，就是操作系统中的原语
+    只有DML语句(insert,update,delete)才有事务，其他语句与事务无关
+    事务的实现
+        InnoDB存储引擎：提供一组用来记录事务性活动的日志文件
+        在事务的执行过程中，每一条DML的操作都会记录到"事务性活动的日志文件"中
+        在事务的执行过程中，我们可以提交事务，也可以回滚事务
+        提交事务：
+            清空事务性活动的日志文件，将数据全部彻底持久化到数据库表中，
+            提交事务标志着，事务的结束，并且是一种全部成功的结束
+        回滚事务：
+            将之前所有的DML操作全部撤销，并且清空事务性活动的日志文件
+            回滚事务标志着，事务的结束，并且是一种全部失败的结束
+    怎么提交事务，怎么回滚事务？
+        提交事务：commit;
+        回滚事务：rollback;(回滚永远都是只能回滚到上一次的提交点)
+        mysql默认情况下是支持自动提交事务的，自动提交是：每执行一条DML语句，则提交一次
+        怎么关闭mysql的自动提交机制：先执行start transaction
+    事务的四个特性，ACID
+        A：原子性，说明事务是最小的工作单元，不可再分
+        C：一致性：同一个事务当中，所有操作必须同时成功，或同时失败，以保证数据的一致性
+        I：隔离性：一个事务的操作不影响另一个事务，A事务和B事务之间具有一定的举例，
+                A事务在操作一张表时，B事务也操作这张表会怎样？
+        D：持久性：事务最终结束的一个保障
+    事务的隔离性
+         隔离性指的是多事务操作之间不会产生影响，如果不考虑隔离性会产生很多问题，有三个读问题：脏读，不可重复读，虚(幻)读
+         脏读：
+            定义：一个未提交事务读到另一个未提交事务的数据，致命错误
+            专业定义：一个事务读到了另一个未提交事务修改过的数据
+            A从数据库读一个数据假设薪水2000，将2000改成1000，数据库薪水变成1000，但A并没有提交时，
+            B从数据库中读取到薪水1000，此时A回滚了事务，数据库薪水又回到2000，此时就说B读取的数据是脏数据，无效的数据，即，脏读。
+         不可重复读：
+            定义：一个未提交事务读取到另一个已提交事务的修改数据，不是错误，是一种现象
+            专业定义：一个事务只能读到另一个已经提交的事务修改过的数据，并且其他事务每对该数据进行一次修改并提交后，该事务都能查询得到最新值。
+            A和B从数据库中读取薪水都为2000，然后A将薪水改成1000后提交了，数据库中薪水此时为1000，B再次读取薪水时发现薪水为1000
+            和之前读的薪水2000并不一致，这就是不可重复读，重复读取数据会发现数据不一致的问题
+         虚(幻)读：
+            定义：一个未提交事务读取到另一个已提交事务的添加数据，和不可重复读类似
+            专业定义:一个事务先根据某些条件查询出一些记录，之后另一个事务又向表中插入了符合这些条件的记录，
+                原先的事务再次按照该条件查询时，能把另一个事务插入的记录也读出来。
+            和不可重复读一样，只不过不可重复读说的是某个数据的值，重复读时不一致的问题，而虚读指的是重复读取表时，数据记录数不一致的问题
+            两者只是角度不同
+    事务的隔离级别
+        如果不对事务设置隔离级别，则多个事务之间会产生很多问题，脏读，不可重复读，虚读
+        事务的隔离级别有以下几种：
+            READ UNCOMMITTED 读未提交，
+                定义：指的是允许事务读到其他事务未提交的数据，三种读问题都有，肯定不行
+                专业定义：在读未提交隔离级别下，事务A可以读取到事务B修改过但未提交的数据。
+            READ COMMITTED 读已提交，没有脏读问题，有不可重复读和幻读问题
+                专业定义：在读已提交隔离级别下，事务B只能在事务A修改过并且已提交后才能读取到事务B修改的数据。
+            REPEATABLE READ 可重复读，没有脏读和不可重复读，有幻读问题，但是对于mysql数据库，可重复读没有幻读问题
+                专业定义：在可重复读隔离级别下，事务B只能在事务A修改过数据并提交后，自己也提交事务后，才能读取到事务B修改的数据。
+            SERIALIZABLE 串行化，三个读问题都没有，并发性能十分低下
+        mysql默认的隔离级别是REPEATABLE READ，可重复读
+        隔离级别是解决多事务之间操作所造成影响的手段，方法
+
+索引
+    索引是在数据库表的字段上添加的，是为了提高查询效率存在的一种机制
+    一张表的一个字段可以添加一个索引，当然，多个字段联合起来也可以添加索引
+    索引是为了缩小扫描范围而存在的一种机制
+    mysql在查询方面主要就是两种方式：
+        第一种方式:全表扫描，指的是根据where条件中字段一个一个比对值
+        第二种方式:根据索引检索
+        在mysql数据库当中索引也是需要排序的，并且这个所谓的排序和TreeSet数据结构相同
+        在mysql当中索引是一个B-Tree数据结构，遵循左小右大原则存放
+    索引的实现原理
+        1)在任何数据库当中主键上都会默认添加索引对象，另外在mysql当中，一个字段上如果有unique约束的话，也会自动创建索引对象
+        2)在任何数据库当中，任何一张表的任何一条记录在硬盘存储上都有自己的地址
+        3)在mysql当中，索引是一个单独的对象，不同的存储引擎以不同的形式存在，在MyISAM存储引擎中，索引存储在一个.MYI文件中
+            在InnoDB存储引擎中，索引存储在一个逻辑名称叫做tablespace当中，在MEMORY存储引擎当中，索引被存储在内存当中
+            不管索引存储在哪里，索引在mysql当中都是一个树的形式存在(B-Tree)
+        4)自己的理解：如果被添加索引的字段上的字段值会被底层转换成B-Tree的存储形式存储，当查询时where上的条件是根据
+            被添加了索引的字段查找数据时，会将查询值，在B-Tree上快速查找出一致的值，又因为每一条记录在硬盘都有自己的编号，地址
+            且被添加索引的字段值是唯一的，我们通过找到的字段值就能定位出要查找的记录，
+
+    什么条件下，才会给字段添加索引？
+        1)数据量庞大
+        2)该字段经常出现在where的后面，以条件的形式存在，也就是说该字段经常被扫描
+        3)该字段很少的DML(insert,delete,update)操作,因为DML之后，索引需要重新排序
+        建议不要随意添加索引，因为索引也是需要维护的，太多的话反而会降低系统的性能，建议通过主键查询
+        建议通过unique约束的字段进行查询，效率是比较高的
+    索引的创建和删除
+        索引的创建：create index 索引名 on 表名(表中字段)
+        索引的删除：drop index 索引名 on 表名
+    在mysql当中，怎么查看一条sql是否使用了索引进行检索
+        在sql语句前加上explain,"type=ALL"是全表扫描,"type=ref"是使用了索引
+    索引失效的时候
+        1)where条件使用模糊查询，且模糊查询值以%开始，此时就算该字段上设置了索引，也不能加快检索效率
+            而是使用全表查询，所以尽量要尽量避免模糊查询的时候以"%"开始，这是一种优化的策略
+            例如，当在name字段上设置了索引，但使用select * from emp where name like '%T'查找数据
+            这种情况下，索引就会失效
+        2)使用or关键字的时候会失效，如果使用or那么要求or两边的条件字段都要有索引，才会走索引
+            如果其中一边有一个字段没有索引，那么另一个字段上的索引也会失效，所以这就是为什么不建议使用or的原因
+            建议使用union代替
+        3)使用复合索引的时候，where条件没有使用左侧的字段查找数据，索引失效
+            复合索引指的是：两个字段或更多字段联合起来添加一个索引
+            例如：添加一个复合索引：create index emp_job_sal_index on emp(job,sal);
+                查询时：select * from emp where sal = 800,此时where条件使用的字段是sal，索引失效
+        4)在where条件当中，索引字段使用了函数，此时会导致索引失效
+            例如，假如name字段添加了索引，此时查询select * from where lower(name) = 'smith'
+                就不会走索引，而是使用全表查询。
+    索引的分类
+        索引是数据库优化的重要手段，索引分为以下几种：
+        单一索引：一个字段上添加索引
+        复合索引：两个或以上的字段联合起来添加的一个索引
+        主键索引：主键上添加索引，默认的
+        唯一性索引：具有unique约束的字段上添加索引
+
+视图view
+    个人定义：视图是指向查询结果(查询结果本身也是临时表，也是引入真实表数据的集合)的指针，视图是一个虚表，并不真实存在。
+    视图的创建
+        create view 视图名 as DQL语句
+    视图的删除
+        drop view 视图名
+    注意：只有DQL语句才能以view的形式创建
+    我们可以使用视图做什么？
+        我们可以面向视图对象进行增删改查，对视图对象的增删改查，会导致原表被操作
+        (这里说明视图并不是保存查询语句的查询结果，而是保存查询语句，相当于函数调用查询语句)
+    视图的作用：简化sql语句
+
+DBA常用命令
+    java程序员重点掌握数据的导入和导出(数据的备份)
+    数据导出：
+        在window中dos窗口下：导出数据库中所有表:"mysqldump 数据库名>保存sql数据文件的路径\数据库名.sql -uroot -p密码"
+        在window中dos窗口下：导出数据库中指定表:"mysqldump 数据库名 表名>保存sql数据文件的路径\数据库名.sql -uroot -p密码"
+    数据导入：
+        登录mysql，切换到数据库，执行"source sql数据文件的位置"
+    注意：这里的导入导出的都是数据，表中的数据，导入数据就是往表中插入数据
+
+数据库设计三范式
+    什么是数据库设计范式？
+        数据库表的设计依据，教你怎么进行数据库表的设计
+    数据库设计范式共有3个
+        第一范式：要求任何一张表必须有主键，表中每一个字段具有原子性，不可再分
+        第二范式：建立在第一范式基础之上，要求所有非主键字段完全依赖主键，不要产生部分依赖
+            部分依赖指的是：非主键字段只依赖复合主键中的部分字段。
+            在第一范式基础上，如果主键是单一主键，则也满足第二范式，不满足第二范式表的主键一定是复合主键
+        第三范式：建立在第二范式基础之上，要求所有非主键字段直接依赖主键，不要产生传递依赖
+            传递依赖指的是，一个表中，一个非主键字段依赖另一个非主键字段，另一个非主键字段依赖主键，这就产生了传递依赖
+        按照三范式设计的表，可以避免数据的冗余，空间的浪费
+    总结表的设计
+        一对多：一对多，两张表，多的表加外键
+        多对多：多对多，三张表，关系表两个外键
+        一对一：一对一，一般是放在同一个表中，但有可能放在同一个表中会使表中字段太多，表太大，
+            所以要对一张大表进行分表，即，分成两张表，在其中一张表中使用外键+unique约束关联另一张表
+    数据库三范式终究是理论上的，实际开发可能会用冗余来换执行速度，毕竟表与表的连接次数多了，执行速度就会慢
+        并且增加了编写sql的难度
+    
+
+34道sql题
+    表结构：有三张表：emp,dept,salgrade
+        emp:
+            EMPNO  ENAME   JOB        MGR   HIREDATE    SAL      COMM     DEPTNO
+            7782   CLARK   MANAGER    7839  1981-06-09  2450.00   null    10
+            7839   KING    PRESIDENT  null  1981-11-17  5000.00   null    10
+            7934   MILLER  CLERK      7782  1982-01-23  1300.00   null    10
+            7369   SMITH   CLERK      7902  1980-12-17  800.00    null    20
+            7566   JONES   MANAGER    7839  1981-04-02  2975.00   null    20
+            7788   SCOTT   ANALYST    7566  1987-04-19  3000.00   null    20
+            7876   ADAMS   CLERK      7788  1987-05-23  1100.00   null    20
+            7902   FORD    ANALYST    7566  1981-12-03  3000.00   null    20
+            7499   ALLEN   SALESMAN   7698  1981-02-20  1600.00  300.00   30
+            7521   WARD    SALESMAN   7698  1981-02-22  1250.00  500.00   30
+            7654   MARTIN  SALESMAN   7698  1981-09-28  1250.00  1400.00  30
+            7698   BLAKE   MANAGER    7839  1981-05-01  2850.00   null    30
+            7844   TURNER  SALESMAN   7698  1981-09-08  1500.00  0.00     30
+            7900   JAMES   CLERK      7698  1981-12-03  950.00    null    30
+        dept:
+            DEPTNO  DNAME       LOC
+            10      ACCOUNTING  NEW YORK
+            20      RESEARCH    DALLAS
+            30      SALES       CHICAGO
+            40      OPERATIONS  BOSTON
+        salgrade:
+            GRADE  LOSAL  HISAL
+            1      700    1200
+            2      1201   1400
+            3      1401   2000
+            4      2001   3000
+            5      3001   9999
+    第一题：取得每个部门最高薪水的人员名称
+        SELECT emp.`ENAME` , t.sal,t.deptno
+        FROM emp JOIN (SELECT MAX(emp.`SAL`) AS sal,emp.`DEPTNO` FROM emp GROUP BY emp.`DEPTNO`) t
+        ON emp.`DEPTNO`=t.deptno AND emp.`SAL` IN (t.sal)
+    第二题：哪些人的薪水在部门的平均薪水之上
+        SELECT emp.`ENAME`,emp.`SAL`
+        FROM emp JOIN (SELECT AVG(emp.`SAL`) sal,emp.`DEPTNO` FROM emp GROUP BY emp.deptno) t
+        WHERE emp.`SAL`>t.sal AND emp.`DEPTNO`=t.deptno
+    第三题：取得部门中（所有人的）平均的薪水等级
+        SELECT emp.`DEPTNO`,AVG(salgrade.`GRADE`)
+        FROM emp JOIN salgrade ON emp.`SAL` BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+        GROUP BY emp.`DEPTNO`
+        //取得每一个部门平均薪资等级
+        SELECT salgrade.`GRADE`,t.deptno,t.sal
+        FROM salgrade JOIN (SELECT AVG(emp.`SAL`) sal,emp.`DEPTNO` FROM emp GROUP BY emp.deptno) t
+        ON t.sal BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+    第四题：不准用组函数（Max ），取得最高薪水
+        1)SELECT sal FROM emp ORDER BY sal DESC LIMIT 1
+        2)SELECT emp.`SAL` FROM emp
+            WHERE emp.`SAL` NOT IN (SELECT DISTINCT a.sal FROM emp a JOIN emp b ON a.`SAL`<b.`SAL`)
+    第五题：取得平均薪水最高的部门的部门编号
+        SELECT AVG(emp.`SAL`) avgsal,emp.`DEPTNO`
+        FROM emp GROUP BY emp.`DEPTNO` ORDER BY avgsal DESC LIMIT 1
+    第六题：取得平均薪水最高的部门的部门名称
+        1)SELECT t.avgsal,t.deptno,dept.`DNAME`
+            FROM dept JOIN (SELECT AVG(emp.`SAL`) avgsal,emp.`DEPTNO`
+            FROM emp GROUP BY emp.`DEPTNO` ORDER BY avgsal DESC LIMIT 1) t
+            ON t.deptno=dept.`DEPTNO`
+        2)SELECT dept.`DNAME`, AVG(emp.`SAL`) avgsal
+          FROM emp JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+          GROUP BY dept.`DNAME` ORDER BY avgsal DESC LIMIT 1
+    第七题：求平均薪水的等级最低的部门的部门名称
+        1)SELECT t.avgsal,t.deptno,dept.`DNAME`
+            FROM dept JOIN (SELECT AVG(emp.`SAL`) avgsal,emp.`DEPTNO`
+            FROM emp GROUP BY emp.`DEPTNO` ORDER BY avgsal  LIMIT 1) t
+            ON t.deptno=dept.`DEPTNO`
+        2)SELECT dept.`DNAME`, AVG(emp.`SAL`) avgsal
+            FROM emp JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+            GROUP BY dept.`DNAME` ORDER BY avgsal LIMIT 1
+    第八题：取得比普通员工(员工代码没有在 mgr 字段上出现的) 的最高薪水还要高的领导人姓名
+        1)SELECT e.`ENAME` ,e.`SAL` ,e.`EMPNO`
+            FROM emp e
+            WHERE e.`EMPNO` IN (SELECT DISTINCT IFNULL( emp.`MGR`,0) FROM emp)
+            AND e.`SAL`>(SELECT e.`SAL`FROM emp e WHERE e.`EMPNO` NOT IN (SELECT DISTINCT IFNULL( emp.`MGR`,0) FROM emp) ORDER BY e.`SAL` DESC LIMIT 1)
+        2)SELECT ename, sal FROM emp
+          WHERE sal>(SELECT MAX(sal) FROM emp WHERE emp.`EMPNO` NOT IN(SELECT DISTINCT mgr FROM emp WHERE mgr IS NOT NULL))
+    第九题：取得薪水最高的前五名员工
+        SELECT * FROM emp ORDER BY emp.`SAL` DESC LIMIT 5
+    第十题：取得薪水最高的第六到第十名员工
+        SELECT * FROM emp ORDER BY emp.`SAL` DESC LIMIT 5,5
+    第十一题：取得最后入职的 5 名员工
+        SELECT * FROM emp ORDER BY emp.`HIREDATE`  LIMIT 5
+    第十二题：取得每个薪水等级有多少员工
+        1)SELECT  salgrade.`GRADE`,COUNT(*)
+            FROM salgrade JOIN (SELECT emp.sal FROM emp) t
+            ON t.sal BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+            GROUP BY salgrade.`GRADE`
+        2)SELECT COUNT(*),salgrade.`GRADE` FROM emp JOIN salgrade
+            ON emp.`SAL` BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+            GROUP BY salgrade.`GRADE`
+    第十三题：有 3 个表 S(学生表)，C（课程表），SC（学生选课表）
+         S（SNO，SNAME）代表（学号，姓名）
+         C（CNO，CNAME，CTEACHER）代表（课号，课名，教师）
+         SC（SNO，CNO，SCGRADE）代表（学号，课号，成绩）
+         问题：
+         1，找出没选过“黎明”老师的所有学生姓名。
+            select sname from s join sc on s.sno=sc.sno
+            where sc.cno not in (select cno from c where cname = '黎明')
+         2，列出 2 门以上（含2 门）不及格学生姓名及平均成绩。
+            select sname,cno from s join sc on s.sno=sc.sno where scgrade<60
+         3，即学过 1 号课程又学过 2 号课所有学生的姓名。
+    第十四题：列出所有员工及领导的姓名
+        SELECT emp.`ENAME`,IFNULL(e2.ename,'没有领导') 领导 FROM emp LEFT JOIN emp e2 ON emp.`MGR`=e2.`EMPNO`
+    第十五题：列出受雇日期早于其直接上级的所有员工的编号,姓名,部门名称
+        SELECT emp.`EMPNO`,emp.`ENAME`,dept.`DNAME` FROM emp
+        LEFT JOIN emp e2 ON emp.`MGR`=e2.`EMPNO`
+        JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+        WHERE emp.`HIREDATE`<e2.`HIREDATE`
+    第十六题：列出部门名称和这些部门的员工信息, 同时列出那些没有员工的部门
+        SELECT e.*,dept.`DNAME` FROM emp e RIGHT JOIN dept ON e.`DEPTNO`=dept.`DEPTNO`
+    第十七题：列出至少有 5 个员工的所有部门
+        SELECT dept.`DNAME`,COUNT(*) FROM emp JOIN dept
+        ON emp.`DEPTNO`=dept.`DEPTNO` GROUP BY dept.`DNAME` HAVING COUNT(*)>=5
+    第十八题：列出薪金比"SMITH" 多的所有员工信息
+        SELECT * FROM EMP WHERE SAL >(SELECT sal FROM emp WHERE ename='SMITH')
+    第十九题：列出所有"CLERK"( 办事员) 的姓名及其部门名称, 部门的人数
+        SELECT t1.ename,t1.dname,t1.deptno,t2.num  FROM
+        (SELECT emp.ename,dept.`DNAME`,dept.`DEPTNO` FROM emp JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO` WHERE emp.job = 'CLERK') t1
+        JOIN (SELECT emp.`DEPTNO`,COUNT(*) num FROM emp GROUP BY emp.`DEPTNO`) t2
+        ON t1.deptno=t2.deptno
+    第二十题：列出最低薪金大于 1500 的各种工作及从事此工作的全部雇员人数
+        SELECT job,COUNT(*) FROM emp  GROUP BY job HAVING MIN(sal)>1500
+    第二十一题：列出在部门"SALES"< 销售部> 工作的员工的姓名, 假定不知道销售部的部门编号.
+        SELECT emp.`ENAME` FROM emp
+        WHERE emp.`DEPTNO`=(SELECT dept.`DEPTNO` FROM dept WHERE dept.`DNAME`='SALES')
+    第二十二题：列出薪金高于公司平均薪金的所有员工, 所在部门, 上级领导, 雇员的工资等级.
+        SELECT emp.`ENAME`,e2.`ENAME`,dept.`DNAME`,salgrade.`GRADE`
+        FROM emp JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+        LEFT JOIN emp e2 ON emp.`MGR`=e2.`EMPNO`
+        JOIN salgrade ON emp.`SAL` BETWEEN salgrade.`LOSAL` AND salgrade.`HISAL`
+        WHERE emp.`SAL`>(SELECT AVG(sal) FROM emp)
+    第二十三题：列出与"SCOTT" 从事相同工作的所有员工及部门名称
+        SELECT ename,dept.`DNAME` FROM emp JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+        WHERE job=(SELECT job FROM emp WHERE ename='SCOTT') AND ename!='SCOTT'
+    第二十四题：列出薪金等于部门 30 中员工的薪金的其他员工的姓名和薪金.
+        SELECT * FROM emp
+        WHERE sal IN (SELECT sal FROM emp WHERE emp.`DEPTNO`=30) AND emp.`DEPTNO` <> 30
+    第二十五题：列出薪金高于在部门 30 工作的所有员工的薪金的员工姓名和薪金. 部门名称
+        SELECT * FROM emp
+        WHERE sal >(SELECT MAX(sal) FROM emp WHERE emp.`DEPTNO`=30) AND emp.`DEPTNO` <> 30
+    第二十六题：列出在每个部门工作的员工数量, 平均工资和平均服务期限
+        SELECT dept.`DEPTNO`,COUNT(emp.`ENAME`),IFNULL(AVG(sal),0),
+            IFNULL(AVG(TIMESTAMPDIFF(YEAR,emp.`HIREDATE`,NOW())),0) serviceyear
+        FROM emp RIGHT JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+        GROUP BY dept.`DEPTNO`
+    第二十七题：列出所有员工的姓名、部门名称和工资。
+        SELECT e.ename,e.`SAL`,dept.`DNAME` FROM emp e JOIN dept ON e.`DEPTNO`=dept.`DEPTNO`
+        WHERE e.empno NOT IN (SELECT DISTINCT e2.`MGR` FROM emp e2 WHERE e2.mgr IS NOT NULL)
+    第二十八题：列出所有部门的详细信息和人数
+        1)SELECT * FROM dept LEFT JOIN
+            (SELECT emp.`DEPTNO`,COUNT(*) num FROM emp GROUP BY emp.`DEPTNO`) t ON dept.`DEPTNO`=t.deptno
+        2)SELECT dept.*,COUNT(emp.`ENAME`) FROM emp RIGHT JOIN dept ON emp.`DEPTNO`=dept.`DEPTNO`
+          GROUP BY dept.`DEPTNO`,dept.`DNAME`,dept.`LOC`
+    第二十九题：列出各种工作的最低工资及从事此工作的雇员姓名
+        SELECT ename ,t.* FROM emp JOIN (SELECT job,MIN(sal) sal FROM emp GROUP BY job) t
+        ON emp.`JOB`=t.job AND emp.`SAL`=t.sal
+    第三十题：列出各个部门的 MANAGER( 领导) 的最低薪金
+        SELECT emp.`DEPTNO`,MIN(sal) FROM emp WHERE emp.`JOB`='manager' GROUP BY emp.`DEPTNO`
+    第三十一题：列出所有员工的 年工资, 按 年薪从低到高排序
+        SELECT e.ename,e.`SAL`*12 yearsal FROM emp e
+        WHERE e.empno NOT IN (SELECT DISTINCT e2.`MGR` FROM emp e2 WHERE e2.mgr IS NOT NULL) ORDER BY sal
+    第三十二题：求出员工领导的薪水超过3000的员工名称与领导
+        SELECT emp.`ENAME`,e2.ename FROM emp JOIN emp e2 ON emp.`MGR`=e2.`EMPNO` WHERE e2.`SAL`>3000
+    第三十三题：求出部门名称中, 带'S'字符的部门员工的工资合计、部门人数
+        SELECT ifnull(SUM(sal),0),COUNT(emp.`ENAME`) num,emp.`DEPTNO` FROM emp right JOIN dept
+        ON emp.`DEPTNO`=dept.`DEPTNO` WHERE dept.`DNAME` LIKE '%S%' GROUP BY emp.`DEPTNO`
+    第三十四题：给任职日期超过 30 年的员工加薪 10%
+        SELECT emp.`ENAME`,emp.`SAL`*1.1 FROM emp WHERE TIMESTAMPDIFF(YEAR,emp.`HIREDATE`,NOW())>30
+
+
+
+
+
