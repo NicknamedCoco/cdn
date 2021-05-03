@@ -1,2 +1,2 @@
 # cdn
-博客CDN by jsDelivr
+博客素材
