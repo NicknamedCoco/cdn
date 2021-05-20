@@ -1,0 +1,661 @@
+设计模式
+    设计模式（Design Pattern）是对软件设计中普遍存在（反复出现）的各种问题，所提出的解决方案。
+    根据模式的目的来划分的话，设计模式可以分为以下 3 种类型：
+        1)创建型模式
+            用来描述 “如何创建对象”，它的主要特点是“将对象的创建和使用分离”。
+            包括单例，原型，工厂方法，抽象工厂和建造者 5 种模式。
+        2)结构型模式
+            用来描述如何将类或对象按照某种布局组成更大的结构。
+            包括代理，适配器，桥接，装饰，外观，享元和组合7种模式。
+        3)行为型模式
+            用来识别对象之间的常用交流模式以及如何分配职责。
+            包括模板方法，策略，命令，职责链，状态，观察者，中介者，迭代器，访问者，备忘录和解释器 11 种模式。
+    设计模式的7种原则
+        设计原则	                一句话归纳	                                        目的
+        开闭原则	            对扩展开放，对修改关闭	                                降低维护带来的新风险
+        依赖倒置原则	        高层不应该依赖低层，要面向接口编程	                        更利于代码结构的升级扩展
+        单一职责原则	        一个类只干一件事，实现类要单一	                        便于理解，提高代码的可读性
+        接口隔离原则	        一个接口只干一件事，接口要精简单一	                        功能解耦，高聚合、低耦合
+        迪米特法则	不该知道的不要知道，一个类应该保持对其它对象最少的了解，降低耦合度	    只和朋友交流，不和陌生人说话，减少代码臃肿
+        里氏替换原则	不要破坏继承体系，子类重写方法功能发生改变，不应该影响父类方法的含义	    防止继承泛滥
+        合成复用原则	尽量使用组合或者聚合关系实现代码复用，少使用继承	                    降低代码耦合
+
+常用的设计模式：
+    单例模式
+        目的：
+            单例模式用于保证一个类仅有一个实例，并提供一个访问它的全局访问点。
+        应用场景：
+            有一些对象我们往往只需要一个，比如全局缓存、浏览器中的 window 对象等。
+            如果遇到创建对象时耗时过多或耗资源过多，但又经常用到的对象，我们就可以考虑使用单例模式。
+        单例模式的实现方式：
+            单例模式的实现方式有多种：懒汉式(线程不安全),懒汉式(线程安全),饿汉式，双重校验锁，静态内部类(登记式)，枚举
+            一般情况下，不使用懒汉式，使用饿汉式，只有在要明确实现懒加载效果时，才会使用静态内部类的方式，
+            如果涉及到反序列化创建对象时，可以尝试使用枚举的方式，如果有其他特殊需求可以考虑使用双重校验锁方式
+
+            1，懒汉式(线程不安全)
+                public class Singleton {
+                    private static Singleton instance;
+                    private Singleton() {
+                    }
+
+                    public static Singleton getInstance(){
+                        if (instance==null){
+                            instance=new Singleton();
+                        }
+                        return instance;
+                    }
+                }
+            2，懒汉式(线程安全)
+                public class Singleton {
+                    private static Singleton instance;
+                    private Singleton() {
+                    }
+
+                    public static synchronized Singleton getInstance(){
+                        if (instance==null){
+                            instance=new Singleton();
+                        }
+                        return instance;
+                    }
+                }
+            3，饿汉式
+                public class Singleton {
+                    private static Singleton instance = new Singleton();
+                    private Singleton() {
+                    }
+
+                    public static Singleton getInstance(){
+                        return instance;
+                    }
+                }
+                它基于classloader机制避免了多线程的同步问题，不过，instance在类装载时就实例化，
+                虽然导致类装载的原因有很多种，在单例模式中大多数都是调用getInstance方法，
+                但是也不能确定有其他的方式(或者其他的静态方法)导致类装载，这时候初始化instance显然没有达到lazy loading的效果。
+            4，静态内部类(登记式)
+                public class Singleton {
+                    private static class SingletonHolder{
+                        private static final Singleton INSTANCE = new Singleton();
+                    }
+                    private Singleton() {
+                    }
+
+                    public static final Singleton getInstance(){
+                        return SingletonHolder.INSTANCE;
+                    }
+                }
+                这种方式同样利用了classloader机制来保证初始化instance时只有一个线程，
+                它跟饿汉式不同的是：饿汉式只要Singleton类被装载了，那么instance就会被实例化(没有达到lazy loading效果)，
+                而这种方式是Singleton类被装载了，instance不一定被初始化。
+                因为SingletonHolder类没有被主动使用，只有通过显式调用getInstance方法时，
+                才会显式装载SingletonHolder类，从而实例化instance。
+            5，双重校验锁
+                public class Singleton {
+                    private volatile static Singleton singleton;
+                    private Singleton (){}
+
+                    public static Singleton getInstance() {
+                        if (singleton == null) {
+                            synchronized (Singleton.class) {
+                                if (singleton == null) {
+                                    singleton = new Singleton();
+                                }
+                            }
+                        }
+                        return singleton;
+                    }
+                }
+                这种方式采用双锁机制，安全且在多线程情况下能保持高性能。getInstance()的性能对应用程序很关键。
+            6，枚举
+                public enum Singleton {
+                    INSTANCE;
+                    public void whateverMethod() {
+                    }
+                }
+                这种实现方式还没有被广泛采用，但这是实现单例模式的最佳方法。
+                它不仅能避免多线程同步问题，而且还自动支持序列化机制，防止反序列化重新创建新的对象，绝对防止多次实例化。
+                不能通过反射来调用私有构造方法。
+
+    工厂模式
+        简单工厂模式
+            案例：
+                1)产品接口
+                    public interface Game {
+                        void saying();
+                    }
+                2)多个产品实现类实现该接口
+                    public class GTA5Game implements Game {
+
+                        public static final String CODE="GTA5";
+
+                        @Override
+                        public void saying() {
+                            System.out.println("GTA5真好玩。。。。。");
+                        }
+                    }
+                    public class ARKGame implements Game {
+                        public static final String CODE = "ARK";
+
+                        @Override
+                        public void saying() {
+                            System.out.println("方舟真好玩。。。。。");
+                        }
+                    }
+                3)产品工厂类，专门创建产品实现类
+                    public class GameSimpleFactory {
+
+                        public static Game getGame(String code){
+                            Game game=null;
+                            if (code.equalsIgnoreCase("GTA5")){
+                                game=new GTA5Game();
+                            }else if (code.equalsIgnoreCase("ARK")){
+                                game=new ARKGame();
+                            }
+                            return game;
+                        }
+                    }
+                4)测试
+                    public class SimpleFactoryTest {
+                        public static void main(String[] args) {
+                            Game game = GameSimpleFactory.getGame(ARKGame.CODE);
+                            game.saying();
+                        }
+                    }
+                    测试结果：方舟真好玩。。。。。
+                5)总结：简单工厂模式，使用一个静态工厂，根据产品实现类的需求，创建出产品实现类对象
+                    它的缺点是如果新增一个产品实现类，我们就不得不去改静态工厂的if else代码，非常不好。
+
+        工厂方法模式
+            简单工厂模式需要修改工厂类，这显然不符合开闭原则，对扩展开放，对修改关闭，所以我们可以将工厂类
+            再次抽取成一个接口，各个产品实现类都有对应的一个工厂实现类。
+            案例：
+                1)还是上面的例子，Game接口，GTA5Game，ARKGame产品实现类不变
+                2)产品接口工厂
+                    public interface GameAbstractFactory {
+                        Game getGame();
+                    }
+                3)各个产品实现工厂
+                    public class GTA5Factory implements GameAbstractFactory {
+                        @Override
+                        public Game getGame() {
+                            return new GTA5Game();
+                        }
+                    }
+                    public class ARKFactory implements GameAbstractFactory {
+                        @Override
+                        public Game getGame() {
+                            return new ARKGame();
+                        }
+                    }
+                4)测试
+                    public class FactoryMethodTest {
+                        public static void main(String[] args) {
+                            GameAbstractFactory arkFactory = new ARKFactory();
+                            Game game = arkFactory.getGame();
+                            game.saying();
+                        }
+                    }
+                    测试结果：方舟真好玩。。。。。
+                5)总结：可以看到，工厂实现类与工厂接口有多态，产品实现类与产品接口有多态，这样做的好处是，
+                    如果新增一个产品实现类，则只需新增对应的工厂实现类即可，坏处是，如果产品实现类多了，则工厂实现类也会变得非常多。
+        抽象工厂模式
+            工厂方法模式是工厂接口只有一个抽象方法，各个工厂实现类也只重写工厂接口的抽象方法，这个抽象方法对标的是产品实现类的接口
+            例如上面的例子，各个产品实现类实现类的接口是Game，则工厂接口的抽象方法返回Game实现类，由各个工厂实现类去重写该方法，
+            从而达到不同的工厂实现类创建不同的产品实现类对象。
+            而，抽象工厂模式是工厂接口有多个抽象方法，这些抽象方法对标的是不同的产品接口，各个工厂实现类重写这些抽象方法，
+
+            案例：
+                1)Game接口及其实现类
+                    public interface Game {
+                        void saying();
+                    }
+                    public class GTA5Game implements Game {
+                        public static final String CODE="GTA5";
+
+                        @Override
+                        public void saying() {
+                            System.out.println("GTA5真好玩。。。。。");
+                        }
+                    }
+                    public class ARKGame implements Game {
+                        public static final String CODE = "ARK";
+
+                        @Override
+                        public void saying() {
+                            System.out.println("方舟真好玩。。。。。");
+                        }
+                    }
+                2)Video接口及其实现类
+                    public interface Video {
+                        void show();
+                    }
+                    public class GTA5Video implements Video {
+                        @Override
+                        public void show() {
+                            System.out.println("GTA5的宣传视频");
+                        }
+                    }
+                    public class ARKVideo implements Video {
+                        @Override
+                        public void show() {
+                            System.out.println("方舟的宣传视频");
+                        }
+                    }
+                3)工厂接口，提供Game和Video抽象方法，并由各个接口实现类重写抽象方法，这些接口实现类相当于游戏厂商
+                    每个游戏厂商都有自己的游戏和游戏宣传视频。
+                    public interface AbstractFactory {
+                        Video getVideo();
+                        Game getGame();
+                    }
+                    public class GTA5Factory implements AbstractFactory {
+                        @Override
+                        public Video getVideo() {
+                            return new GTA5Video();
+                        }
+
+                        @Override
+                        public Game getGame() {
+                            return new GTA5Game();
+                        }
+                    }
+                    public class ARKFactory implements AbstractFactory {
+                        @Override
+                        public Video getVideo() {
+                            return new ARKVideo();
+                        }
+
+                        @Override
+                        public Game getGame() {
+                            return new GTA5Game();
+                        }
+                    }
+                4)测试
+                    public class AbstractFactoryTest {
+                        public static void main(String[] args) {
+                            AbstractFactory gta5Factory = new GTA5Factory();
+                            gta5Factory.getGame().saying();
+                            gta5Factory.getVideo().show();
+                        }
+                    }
+                    测试结果
+                    GTA5真好玩。。。。。
+                    GTA5的游戏视频
+
+    适配器模式
+        适配器模式是将现有的已经实现的组件引入适配器类中，该类同时实现当前系统的业务接口
+        适配器模式分为类适配器和对象适配器，类适配器指的是适配器类继承已有的组件，这种方式并不好，
+        对象适配器指的是在适配器类中通过变量引用已有的组件，这种方式最常用
+
+        案例：笔记本通过读卡去读取TF卡
+            1)笔记本接口
+                public interface Computer {
+                    void readCard(Card card);
+                    void writeCard(Card card);
+                }
+            2)笔记本接口实现类
+                public class LenovoComputer implements Computer {
+                    @Override
+                    public void readCard(Card card) {
+                        card.read();
+                    }
+
+                    @Override
+                    public void writeCard(Card card) {
+                        card.write();
+                    }
+                }
+            3)Card接口，及其实现类SDCard
+                public interface Card {
+                    void read();
+                    void write();
+                }
+                public class SDCard implements Card {
+                    @Override
+                    public void read() {
+                        System.out.println("正在从sd卡中读取数据");
+                    }
+
+                    @Override
+                    public void write() {
+                        System.out.println("正在向sd卡中写入数据");
+                    }
+                }
+            4)我们可以通过测试，可以看到电脑读取SDCard中内容
+                Card sdCard = new SDCard();
+                Computer lenovoComputer = new LenovoComputer();
+                lenovoComputer.readCard(sdCard);
+                lenovoComputer.writeCard(sdCard);
+            5)那么如果TF卡并不是Card接口的实现类怎么办呢？采用适配器模式
+                首先看看TFCard接口及其实现类
+                public interface TFCard {
+                    void readTFCard();
+                    void writeTFCard();
+                }
+                public class TFCardImpl implements TFCard {
+                    @Override
+                    public void readTFCard() {
+                        System.out.println("读取TF卡中数据");
+                    }
+
+                    @Override
+                    public void writeTFCard() {
+                        System.out.println("向TF卡中写入数据");
+                    }
+                }
+            6)创建适配器，实现Card接口，成为该接口的实现类，再通过变量引用TFCard实现类
+                public class CardAdapter implements Card {
+                    TFCard tfCard;
+                    public CardAdapter(TFCard tfCard) {
+                        this.tfCard = tfCard;
+                    }
+
+                    @Override
+                    public void read() {
+                        tfCard.readTFCard();
+                    }
+                    @Override
+                    public void write() {
+                        tfCard.writeTFCard();
+                    }
+                }
+            7)测试
+                public class AdapterTest {
+                    public static void main(String[] args) {
+                        TFCard tfCard = new TFCardImpl();
+                        CardAdapter cardAdapter = new CardAdapter(tfCard);
+                        Computer lenovoComputer = new LenovoComputer();
+                        lenovoComputer.readCard(cardAdapter);
+                        lenovoComputer.writeCard(cardAdapter);
+                    }
+                }
+                测试结果
+                读取TF卡中数据
+                向TF卡中写入数据
+
+    装饰器模式
+        装饰器模式（Decorator Pattern）允许向一个现有的对象添加新的功能，同时又不改变其结构。
+        其目的是：动态地给一个对象添加一些额外的职责。就增加功能来说，装饰器模式相比生成子类更为灵活。
+        装饰模式是继承的一个替代模式，装饰模式可以动态扩展一个实现类的功能。
+
+        装饰器模式与代理模式的区别是：
+            1，装饰器模式强调的是增强自身，在被装饰之后你能够在被增强的类上使用增强后的功能。 增强后你还是你，只不过能力更强了而已；
+                代理模式强调要让别人帮你去做一些本身与你业务没有太多关系的职责（记录日志、设置缓存）。
+                代理模式是为了实现对象的控制，因为被代理的对象往往难以直接获得或者是其内部不想暴露出来。
+            2、装饰模式是以对客户端透明的方式扩展对象的功能，是继承方案的一个替代方案；
+                代理模式则是给一个对象提供一个代理对象，并由代理对象来控制对原有对象的引用;
+
+        案例：洗完澡需要穿衣服，衣服就是装饰器
+            1)创建Person接口，及其实现类，该实现类作为被装饰的类
+                public interface Person {
+                    void init();
+                }
+                public class Wanyi implements Person {
+
+                    @Override
+                    public void init() {
+                        System.out.println("万一洗完澡了，但是没有衣服穿");
+                    }
+                }
+            2)创建抽象装饰类，及其具体子类，该子类作为真正的装饰器类
+                抽象装饰类实现Person接口
+                public abstract class PersonDecorator implements Person {
+                    private Person personDecorator;
+
+                    public PersonDecorator(Person personDecorator) {
+                        this.personDecorator = personDecorator;
+                    }
+
+                    @Override
+                    public void init() {
+                        personDecorator.init();
+                    }
+                }
+                public class ClothesDecorator extends PersonDecorator {
+
+                    private Person personDecorator;
+                    public ClothesDecorator(Person personDecorator) {
+                        super(personDecorator);
+                    }
+
+                    @Override
+                    public void init() {
+                        super.init();
+                        getClothes();
+                    }
+
+                    public void getClothes(){
+                        System.out.println("万一穿上了衣服");
+                    }
+                }
+            3)测试：
+                public class DecoratorTest {
+                    public static void main(String[] args) {
+                        ClothesDecorator clothesDecorator = new ClothesDecorator(new Wanyi());
+                        clothesDecorator.init();
+                    }
+                }
+                测试结果
+                万一洗完澡了，但是没有衣服穿
+                万一穿上了衣服
+
+                可以看到，真实对象的方法在抽象装饰类PersonDecorator的init方法被调用，该抽象装饰类的子类扩展真实对象的功能
+                装饰类和被装饰类可以独立发展，不会相互耦合，装饰模式是继承的一个替代模式，装饰模式可以动态扩展一个实现类的功能。
+    观察者模式
+        当对象间存在一对多关系时，则使用观察者模式（Observer Pattern）。比如，当一个对象被修改时，则会自动通知依赖它的对象。
+        这种模式有时又称作发布-订阅模式、模型-视图模式，观察者模式属于行为型模式。
+        目的：定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都得到通知并被自动更新。
+        使用场景：需要在系统中创建一个触发链，A对象的行为将影响B对象，B对象的行为将影响C对象……，可以使用观察者模式创建一种链式触发机制。
+
+        案例：模拟老师说话，学生听讲，老师作为被观察者，学生作为观察者
+            1)Student抽象类，及其实现类
+                public abstract class Teacher {
+                    List<Student> students = new ArrayList<>();
+                    private String msg;
+
+                    public String getMsg() {
+                        return msg;
+                    }
+                    public void setMsg(String msg) {
+                        this.msg = msg;
+                        notifyStudent(msg);
+                    }
+
+                    //新增观察者，新增订阅
+                    public void add(Student student){
+                        students.add(student);
+                    }
+                    //取消订阅
+                    public void remove(Student student){
+                        students.remove(student);
+                    }
+
+                    //通知所有观察者
+                    public abstract void notifyStudent(String msg);
+                }
+                //英语老师
+                public class EnglishTeacher extends Teacher {
+                    @Override
+                    public void notifyStudent(String msg) {
+                        for (Student student : super.students) {
+                            student.action(msg);
+                        }
+                    }
+                }
+            2)学生接口，及其实现类
+                public interface Student {
+                    void action(String msg);
+                }
+                public class WanyiStudent implements Student {
+                    @Override
+                    public void action(String msg) {
+                        System.out.println(getClass().getName()+":老师说"+msg);
+                    }
+                }
+                public class XiaoPangStudent implements Student {
+                    @Override
+                    public void action(String msg) {
+                        System.out.println(getClass().getName()+":老师说"+msg);
+                    }
+                }
+                public class XiaoShouStudent implements Student {
+                    @Override
+                    public void action(String msg) {
+                        System.out.println(getClass().getName()+":老师说"+msg);
+                    }
+                }
+            3)测试
+                public class ObserverTest {
+                    public static void main(String[] args) {
+                        Teacher englishT = new EnglishTeacher();
+                        Student wanyi = new WanyiStudent();
+                        Student xiaoPangStudent = new XiaoPangStudent();
+                        Student xiaoShouStudent = new XiaoShouStudent();
+                        englishT.add(wanyi);
+                        englishT.add(xiaoPangStudent);
+                        englishT.add(xiaoShouStudent);
+                        englishT.setMsg("上课！！！");
+                    }
+                }
+                测试结果：
+                world.keyi.basic.observer.WanyiStudent:老师说上课！！！
+                world.keyi.basic.observer.XiaoPangStudent:老师说上课！！！
+                world.keyi.basic.observer.XiaoShouStudent:老师说上课！！！
+
+    模板方法模式
+        模板方法模式在HttpServlet中就有应用，我们写的doGet,doPost方法就是重写HttpServlet中的抽象方法
+        定义：
+            定义一个操作中的算法骨架，而将算法的一些步骤延迟到子类中，使得子类可以不改变该算法结构的情况下重定义该算法的某些特定步骤。
+            它是一种类行为型模式。
+        优点：
+            它在父类中提取了公共的部分代码，便于代码复用。
+            部分方法是由子类实现的，因此子类可以通过扩展方式增加相应的功能，符合开闭原则。
+        缺点：
+            对每个不同的实现都需要定义一个子类，这会导致类的个数增加，系统更加庞大，设计也更加抽象，间接地增加了系统实现的复杂度。
+            由于继承关系自身的缺点，如果父类添加新的抽象方法，则所有子类都要改一遍。
+
+        案例：模仿HttpServlet
+            1)父类，就像HttpServlet
+                public abstract class FakeHttpServlet {
+                    //模板方法
+                    protected void service(){
+                        doGet();
+                        doPost();
+                        doDelete();
+                        doPut();
+                    }
+                    private void doPut() {
+                        System.out.println("doPut方法，父类的具体方法");
+                    }
+
+                    private void doDelete() {
+                        System.out.println("doDelete方法，父类的具体方法");
+                    }
+                    protected abstract void doPost();
+                    protected abstract void doGet();
+                }
+            2)子类继承父类，重写父类中的方法，子类重写的方法在父类模板方法中被调用
+                就是说，父类模板方法控制整个程序的运行，子类只需要提供不同的实现就行
+                public class MyServlet extends FakeHttpServlet {
+                    protected void doPost() {
+                        System.out.println("doPost，子类具体实现");
+                    }
+
+                    protected void doGet() {
+                        System.out.println("doGet，子类具体实现");
+                    }
+                }
+            3)测试
+                public class TemplateMethodTest {
+                    public static void main(String[] args) {
+                        FakeHttpServlet myServlet = new MyServlet();
+                        myServlet.service();
+                    }
+                }
+                测试结果：
+                doGet，子类具体实现
+                doPost，子类具体实现
+                doDelete方法，父类的具体方法
+                doPut方法，父类的具体方法
+
+    责任链模式
+        责任链模式也叫职责链模式。
+        定义：为了避免请求发送者与多个请求处理者耦合在一起，于是将所有请求的处理者通过前一对象记住其下一个对象的引用而连成一条链；
+            当有请求发生时，可将请求沿着这条链传递，直到有对象处理它为止。
+        应用场景：
+            总线网中数据报传送，每台计算机根据目标地址是否同自己的地址相同来决定是否接收；
+            还有异常处理中，处理程序根据异常的类型决定自己是否处理该异常；
+            还有 Struts2 的拦截器、JSP 和 Servlet 的 Filter 等
+        在责任链模式中，客户只需要将请求发送到责任链上即可，无须关心请求的处理细节和请求的传递过程，请求会自动进行传递。
+        所以责任链将请求的发送者和请求的处理者解耦了。
+
+        责任链模式的本质是解耦请求与处理，让请求在处理链中能进行传递与被处理；理解责任链模式应当理解其模式，而不是其具体实现。
+        责任链模式的独到之处是将其节点处理者组合成了链式结构，并允许节点自身决定是否进行请求处理或转发，相当于让请求流动起来。
+
+        案例：模拟孩子找家长借钱
+            1)抽象家长，及其具体实现子类
+                public abstract class Family {
+                    private Family next;
+                    public Family getNext() {
+                        return next;
+                    }
+                    public void setNext(Family next) {
+                        this.next = next;
+                    }
+
+                    protected abstract void handleRequest(int money);
+                }
+                public class Father extends Family {
+                    @Override
+                    protected void handleRequest(int money) {
+                        if (money<=50){
+                            System.out.println("爸爸有，爸爸给你");
+                        }else {
+                            System.out.println("爸爸没有这么多钱");
+                            if (getNext()!=null){
+                                getNext().handleRequest(money);
+                            }
+                        }
+                    }
+                }
+                public class Mother extends Family {
+                    @Override
+                    protected void handleRequest(int money) {
+                        if (money<=1000){
+                            System.out.println("妈妈有，妈妈给你");
+                        }else {
+                            System.out.println("妈妈没有这么多钱");
+                            if (getNext()!=null){
+                                getNext().handleRequest(money);
+                            }
+                        }
+                    }
+                }
+                public class GrandMother extends Family {
+                    @Override
+                    protected void handleRequest(int money) {
+                        if (money<=10000){
+                            System.out.println("奶奶有，奶奶给你");
+                        }else {
+                            System.out.println("奶奶没有这么多钱");
+                            if (getNext()!=null){
+                                getNext().handleRequest(money);
+                            }
+                        }
+                    }
+                }
+            2)测试：
+                public class DutyChainTest {
+                    public static void main(String[] args) {
+                        Family father = new Father();
+                        Family mother = new Mother();
+                        Family grandMother = new GrandMother();
+                        father.setNext(mother);
+                        mother.setNext(grandMother);
+                        father.handleRequest(3000);
+                    }
+                }
+                测试结果：
+                爸爸没有这么多钱
+                妈妈没有这么多钱
+                奶奶有，奶奶给你
+
+
