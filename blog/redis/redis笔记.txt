@@ -1,0 +1,635 @@
+笔记概括
+    1)Redis入门介绍
+    2)Redis数据类型
+    3)解析配置文件redis.conf
+    4)Redis的持久化
+    5)Redis的事务
+    6)Redis的发布订阅
+    7)Redis主从复制
+    8)Redis集群
+    9)Redis穿透，击穿，雪崩，分布式锁
+    10)Redis新功能
+
+Nosql
+    no only sql，不仅仅是sql，泛指非关系型数据库，memcached,redis,mongodb都是nosql型数据库
+    Redis入门介绍
+        数据库发展历程
+            1，单击mysql的美好年代
+                一个网站一个数据库实例，全部放在一个数据库中
+            2，memcached(缓存)+mysql+垂直划分
+                缓存指的是在dao层和数据库层之间的一层，将数据库中查询比较多的数据放在缓存中，这样减小数据库访问压力
+                垂直划分指的是创建多个数据库实例存放数据，一个网站的数据存放在不同的数据库中
+            3，mysql主从赋值，读写分离
+                主从复制，主库中有数据就立刻复制到从库中，从而达到容灾备份，读写分离的效果
+                读写分离：写操作和读操作在不同的数据库实例中进行，写操作在主库，读操作在从库
+            4，分表分库+水平拆分+mysql集群
+                网课这里提到，数据库引擎MyISAM使用表锁，InnoDB使用行锁，表锁指的是用户在操作一张表的一行数据时，其他用户不能操作该表
+                行锁是用户在操作一张表的一行数据时，其他用户可以操作同一个表中另一行数据
+        关系型数据库RDBMS VS NoSql
+            关系型数据库
+                高度组织结构化数据
+                结构化查询语言
+                数据和关系都存储在单独的表中
+                数据操纵语言，数据定义语言
+                严格的一致性
+                基础事务ACID
+            非关系性数据库
+                没有声明性查询语言
+                没有预定义的模式
+                键值对存储，列存储，文档存储，图形数据库
+                最终一致性，而非ACID属性
+                非结构化和不可预知的数据
+                CAP定理
+                高性能，高可用性和可伸缩性
+        数据如何存放？
+            1)商品基本信息一般放mysql数据库中
+            2)商品描述，详情，评价信息(多文字类)一般放在mongoDB数据库中
+            3)商品的图片一般放在图床上，七牛云等
+            4)商品的关键字使用elasticsearch框架
+            5)商品的波段性的热点高频信息，例如情人节最常搜索的巧克力玫瑰，这里就是redis，memcached用武之处
+            6)商品的交易，价格计算，积分累计，这里一般是使用支付宝或者外部系统，第三方接口
+        redis基本命令
+            1)默认16个库，0-15，初始默认使用0号库，使用select dbid来切换数据库，如select 8
+            2)统一密码管理，所有库同样密码
+            3)dbsize命令查看当前数据库的key的数量，keys * 查看库中具体所有键信息
+            4)flushdb命令清空当前库，flushall命令清除所有库
+            5)include /xxx/redis.conf，在自定义配置文件中写入该命令可以将redis.conf文件中的数据引入新自定义配置文件中。
+            6)redis是单线程+多路IO复用技术是，memcached使用多线程+锁机制
+    Redis数据类型
+        基于内存进行存储，支持key-value的存储形式，底层是C语言编写的
+        string
+            介绍
+                string数据结构是简单的key-value类型。简单动态字符串(simple dynamic string，SDS)。
+                Redis的SDS不光可以保存文本数据还可以保存二进制数据，并且获取字符串长度复杂度为O(1)（C 字符串为 O(N)）,
+                除此之外,Redis的SDS API是安全的，不会造成缓冲区溢出。
+            常用命令
+                set,get,strlen,exists,dect,incr,setex
+            应用场景
+                一般常用在需要计数的场景，比如用户的访问次数、热点文章的点赞转发数量等等。
+            举例：
+                set key value   #设置key-value类型的值，ok表示设置成功
+                get key         # 根据key获得对应的 value
+                exists key      # 判断某个key是否存在，1就是存在，0就是不存在
+                strlen key      # 返回key所储存的字符串值的长度。
+                del key         # 删除某个key对应的值，1表示删除成功
+
+                mset key1 value1 key2 value2    # 批量设置key-value类型的值
+                mget key1 key2                  # 批量获取多个key对应的value
+
+                incr key        # 将key中储存的数字值增一
+                decr key        # 将key中储存的数字值减一
+
+                expire <KEY> <TTL>              # 将键的生存时间设为 ttl 秒
+                pexpire <KEY> <TTL>             # 将键的生存时间设为 ttl 毫秒
+                expireat <KEY> <timestamp>      # 将键的过期时间设为 timestamp 所指定的秒数时间戳
+                pexpireat <KEY> <timestamp>     # 将键的过期时间设为 timestamp 所指定的毫秒数时间戳.
+                setex key 60 value              # 数据在 60s 后过期,这是set命令和expire命令的合并操作，该命令是原子性的不会出现并发问题。
+                                                # setex key 60 value等效于set key value ex second
+                ttl key                         # 查看数据还有多久过期，结果以秒为单位
+                pttl key                        # 查看数据还有多久过期，结果以毫秒为单位
+                persist命令可以移除一个键的过期时间
+
+        list
+            介绍
+                list即是链表。Redis的list的实现为一个双向链表，即可以支持反向查找和遍历，更方便操作，不过带来了部分额外的内存开销。
+            常用命令
+                rpush,lpop,lpush,rpop,lrange、llen
+            应用场景
+                发布与订阅或者说消息队列、慢查询。
+
+        hash
+            介绍
+                hash类似于JDK1.8前的HashMap，内部实现也差不多(数组+链表)。
+                hash是一个string类型的field和value的映射表，特别适合用于存储对象，
+                后续操作的时候，你可以直接仅仅修改这个对象中的某个字段的值。 比如我们可以 hash 数据结构来存储用户信息，商品信息等等。
+            常用命令
+                hset,hmset,hexists,hget,hgetall,hkeys,hvals
+            应用场景
+                系统中对象数据的存储。
+
+        set
+            介绍
+                set类似于Java中的HashSet。Redis中的set类型是一种无序集合，集合中的元素没有先后顺序。
+                当你需要存储一个列表数据，又不希望出现重复数据时，set是一个很好的选择，并且set提供了判断某个成员是否在一个set集合内的重要接口，
+                这个也是list所不能提供的。可以基于set轻易实现交集、并集、差集的操作。比如：你可以将一个用户所有的关注人存在一个集合中，
+                将其所有粉丝存在一个集合。Redis 可以非常方便的实现如共同关注、共同粉丝、共同喜好等功能。这个过程也就是求交集的过程。
+            常用命令
+                sadd,spop,smembers,sismember,scard,sinterstore,sunion
+            应用场景
+                需要存放的数据不能重复以及需要获取多个数据源交集和并集等场景
+
+        Zset(sorted set)
+            介绍
+                和set相比，sorted set增加了一个权重参数score，使得集合中的元素能够按score进行有序排列，
+                还可以通过score的范围来获取元素的列表。有点像是Java中HashMap和TreeSet的结合体。
+            常用命令
+                zadd,zcard,zscore,zrange,zrevrange,zrem
+            应用场景
+                需要对数据根据某个权重进行排序的场景。比如在直播系统中，实时排行信息包含直播间在线用户列表，
+                各种礼物排行榜，弹幕消息（可以理解为按消息维度的消息排行榜）等信息。
+        bitmap(位图)
+            介绍
+                bitmap存储的是连续的二进制数字（0和1），通过bitmap,只需要一个bit位来表示某个元素对应的值或者状态，
+                key就是对应元素本身。我们知道8个bit可以组成一个byte，所以bitmap本身会极大的节省储存空间。
+            常用命令
+                setbit、getbit、bitcount、bitop
+            应用场景
+                适合需要保存状态信息（比如是否签到、是否登录...）并需要进一步对这些信息进行分析的场景。
+                比如用户签到情况、活跃用户情况、用户行为统计（比如是否点赞过某个视频）。
+        基数统计HyperLogLog
+            基数统计，指的是统计集合中不重复元素的个数，针对基数运算的数据类型
+        地理位置Geospatial
+            该类型是元素的二维坐标，在地图上就是经纬度，redis基于该类型，提供了经纬度设置，查询，范围查询，距离查询，经纬度hash等常见操作
+            可以设置两个地点，计算两个点之间距离等信息，还可以，以给定的经纬度为中心，找出某一半径内的元素
+        redis5.0还增加Stream，一个新的强大的支持多播的可持久化的消息队列
+    解析配置文件redis.conf
+        1)注释bind 127.0.0.1，不注释只能本机访问
+        2)将protected-mode修改成no，将本机访问保护模式设置no,
+            保护模式是如果你没有设置redis密码，则只能本机访问，改成no后表示就算没有设置密码，其他电脑也能访问
+        3)tcp-keepalive:300   心跳检测，每隔300秒检测连接是否存活，如果一直没有操作就关闭该连接，如果有操作就提供服务
+    Redis的持久化
+        Redis的持久化机制指的是怎么保证Redis挂掉之后再重启数据可以进行恢复。
+        Redis不同于Memcached的很重要一点就是，Redis支持持久化，而且支持两种不同的持久化操作。
+        Redis的一种持久化方式叫快照（snapshotting，RDB），另一种方式是只追加文件（append-only file, AOF）。
+        RDB
+            1)Redis可以通过创建快照来获得存储在内存里面的数据在某个时间点上的副本。Redis创建快照之后，可以对快照进行备份，
+                可以将快照复制到其他服务器从而创建具有相同数据的服务器副本（Redis主从结构，主要用来提高Redis性能），
+                还可以将快照留在原地以便重启服务器的时候使用。
+            2)快照持久化是Redis默认采用的持久化方式，在Redis.conf配置文件中默认有此下配置：
+                save 900 1           #在900秒(15分钟)之后，如果至少有1个key发生变化，Redis就会自动触发BGSAVE命令创建快照。
+                save 300 10          #在300秒(5分钟)之后，如果至少有10个key发生变化，Redis就会自动触发BGSAVE命令创建快照。
+                save 60 10000        #在60秒(1分钟)之后，如果至少有10000个key发生变化，Redis就会自动触发BGSAVE命令创建快照。
+            3)快照方式(RDB)的缺点是：最后一次持久化后的数据可能丢失，因为这种快照方式的持久化是在指定的时间间隔内将内存中数据快照写入磁盘
+            4)save命令和bgsave命令
+                save命令是手动持久化操作，再此期间，其他命令全部阻塞，不建议使用
+                bgsave命令是异步持久化操作，redis会在后台异步进行快照操作，快照同时还可以响应客户端请求。
+            5)redis配置文件中snapshot中，有stop-writes-on-bgsave-error yes
+                这个配置指的是，当磁盘满了就关闭redis的写操作，默认是yes
+            6)redis配置文件中snapshot中，有rdbcompression yes
+                这个配置指的是，对于存储到磁盘中的快照，可以设置是否进行压缩存储，如果是则redis会采用LZF算法进行压缩
+                如果不想消耗CPU来进行压缩，可以设置为关闭此功能，推荐yes
+            7)redis配置文件中snapshot中，有rdbchecksum yes
+                这个配置指的是在存储快照后，可以让redis使用CRC64算法来进行数据校验，但是这么做会增加大约10%的性能消耗
+                如果希望获取最大的性能提升，可以关闭此功能，默认是yes
+            8)redis配置文件中snapshot中，有dbfilename dump.rdb
+                这个配置指的是使用RDB持久化生成的默认文件名，你可以通过该配置修改默认文件名
+            9)RDB的恢复
+                * 关闭redis
+                * 把其他地方的*.rdb快照文件拷贝到redis的工作目录中，并将名字修改为dump.rdb
+                * 启动redis，备份数据会直接加载
+        AOF(Append only file)
+            1)AOF定义
+                以日志的形式来记录每一个写操作(增量保存)，将redis执行过的所有写指令记录下来(读操作不记录)
+                只许追加文件但不可以改写日志文件，redis启动之初会读取该日志文件重新构建数据，换言之
+                redis重启的话就根据日志文件的内容将写指令从前到后执行一次以完成数据的恢复工作
+
+            2)与快照持久化相比，AOF 持久化的实时性更好，因此已成为主流的持久化方案。
+                默认情况下Redis没有开启AOF（append only file）方式的持久化，可以通过修改配置文件中配置开启:appendonly yes
+                默认生成appendonly.aof文件名，你可以通过配置appendfilename设置修改默认文件名
+                不管是哪种持久化模式，在哪个目录下启动redis就会在该目录下生成dump.rdb或者appendonly.aof文件，该路径可以更改
+                aof和rdb同时开启时，系统默认取aof的数据
+
+            3)在Redis的配置文件中存在三种不同的AOF持久化方式，它们分别是：
+                1)appendfsync always    #每次有数据修改发生时都会写入AOF文件,这样会严重降低Redis的速度
+                2)appendfsync everysec  #每秒钟同步一次，显示地将多个写命令同步到硬盘
+                3)appendfsync no        #让操作系统决定何时进行同步
+                为了兼顾数据和写入性能，用户可以考虑appendfsync everysec选项，让Redis每秒同步一次AOF文件，Redis性能几乎没受到任何影响。
+                而且这样即使出现系统崩溃，用户最多只会丢失一秒之内产生的数据。当硬盘忙于执行写入操作的时候，
+                Redis还会优雅的放慢自己的速度以便适应硬盘的最大写入速度。
+            4)Redis4.0对于持久化机制的优化
+                Redis4.0开始支持RDB和AOF的混合持久化（默认关闭，可以通过配置项 aof-use-rdb-preamble 开启）。
+                如果把混合持久化打开，AOF重写的时候就直接把RDB的内容写到AOF文件开头。
+                这样做的好处是可以结合RDB和AOF的优点, 快速加载同时避免丢失过多的数据。
+                当然缺点也是有的，AOF里面的RDB部分是压缩格式不再是AOF格式，可读性较差。
+            5)AOF的恢复和RDB的恢复是一样的，只需要在redis目录文件存在一个appendonly.aof文件，那么当redis重启时
+                会自动读取该日志文件中数据，执行每一条记录，从而恢复数据
+                aof文件出现异常时，如何恢复？
+                    aof日志文件出现异常时，通过redis-check-aof  --fix aof文件名(默认是appendonly.aof)命令
+                    即可将aof中错误的记录删除掉，从而使得aof文件正常被redis加载
+            6)AOF重写压缩
+                AOF重写压缩指的是，AOF采取文件追加方式，文件会越来越大为避免出现此种情况，新增了重写机制，当AOF文件的大小
+                超过所设定的阈值时，redis就会启动AOF文件的内容压缩，只保留可以恢复数据的最小指令集，可以使用命令bgrewriteaof
+
+                AOF重写可以产生一个新的AOF文件，这个新的AOF文件和原有的 AOF 文件所保存的数据库状态一样，但体积更小。
+                AOF重写是一个有歧义的名字，该功能是通过读取数据库中的键值对来实现的，程序无须对现有AOF文件进行任何读入、分析或者写入操作。
+
+
+                在执行BGREWRITEAOF命令时，Redis服务器会维护一个AOF重写缓冲区，该缓冲区会在子进程创建新AOF文件期间，
+                记录服务器执行的所有写命令。当子进程完成创建新AOF文件的工作之后，服务器会将重写缓冲区中的所有内容追加到新AOF文件的末尾，
+                使得新旧两个AOF文件所保存的数据库状态一致。最后，服务器用新的AOF文件替换旧的AOF文件，以此来完成AOF文件重写操作
+
+                何时AOF文件会被重写？
+                    配置文件中有auto-aof-rewrite-min-size 64 ,该配置就是执行重写触发机制，当aof文件容量是该配置的2倍时，也就是128M时
+                    redis才会重写AOF文件
+
+                AOF持久化流程
+                    * 客户端的请求写命令会被append追加到aof缓存区内
+                    * AOF缓存区根据AOF持久化策略(always,everysec,no)将操作sync同步到磁盘的AOF文件中
+                    * AOF文件大小超过重写策略或者手动重写时，会对AOF文件rewrite重写，压缩AOF文件容量
+                    * redis服务重启时，会重新load加载AOF文件中的写操作达到数据恢复的目的
+                AOF缺点：
+                    比RDB占用更多的磁盘空间，恢复备份数据要慢
+        总结:
+            官方推荐两个都启用，如果对数据不敏感，可以选单独用RDB
+            不建议单独用AOF，因为可能会出现bug，如果只是做纯内存缓存，可以都不用。
+    Redis的事务
+        Redis可以通过MULTI，EXEC，DISCARD和WATCH等命令来实现事务(transaction)功能。
+            MULTI，EXEC命令
+                使用MULTI命令后可以输入多个命令。Redis不会立即执行这些命令，而是将它们放到队列，当调用了EXEC命令将执行所有命令。
+                这个过程是这样的：
+                    开始事务（MULTI）。
+                    命令入队(批量操作Redis的命令，先进先出（FIFO）的顺序执行)。
+                    执行事务(EXEC)。
+                注意：开启事务后，输入命令阶段被称为组队阶段，执行exec命令后被称为执行阶段，
+                    如果组队阶段命令出现错误，则所有命令都不会执行，如果执行阶段有一个命令出现错误，则只有出错命令不执行，其他命令都能成功执行，不会回滚
+            DISCARD命令
+                你也可以通过DISCARD命令取消一个事务，它会清空事务队列中保存的所有命令。
+            WATCH命令
+                WATCH命令用于监听指定的键，当调用 EXEC 命令执行事务时，如果一个被WATCH命令监视的键被修改的话，
+                整个事务都不会执行，直接返回失败。watch命令可以同时监视多个key,unwatch命令可以取消监视
+        你可以将Redis中的事务就理解为:Redis事务提供了一种将多个命令请求打包的功能。
+        然后，再按顺序执行打包的所有命令，并且不会被中途打断。redis事务并无保证原子性
+
+        悲观锁和乐观锁
+            悲观锁：顾名思义，在每次取数据的时候都会悲观的觉得别人会修改，所以在每次拿数据的时候都会上锁，这样别人想拿这个数据就只能阻塞，直到自己拿到锁
+                传统的关系型数据库中就用到了很多这种锁机制，比如行锁，表锁，读锁，写锁等，都是在操作前先上锁。
+            乐观锁：顾名思义，在每次拿数据的时候都会乐观的觉得别人不会修改，所以不会上锁，但是在更新之前会判断一下在此期间别人有没有去更新这个数据
+                可以使用版本号等机制，乐观锁适用于多读的应用类型，这样可以提高吞吐量，redis就是使用乐观锁机制实现事务的
+    Redis的发布订阅
+        redis发布订阅(pub/sub)是一种消息通信模式，发送者发送消息，订阅者接收消息，redis客户端可以订阅任意数量的频道
+        subscribe 频道名 (订阅频道)    publish 频道名 信息 (向频道发布消息，订阅该频道的客户端会收到消息)
+    Redis的主从复制(Master/Slave)
+        主从复制：主机数据更新后根据配置和策略，自动同步到备机的机制，主机以写为主，从机以读为主
+        主从复制的好处：
+            1)读写分离，写操作在主机，读操作在从机。一般都是一主机多从机。
+            2)容灾的快速恢复，指的是当某个从机故障后，能根据策略使得请求访问其他从机,如果主机故障后，可以配置从机上位
+        主从复制的具体过程，见个人博客
+        主从复制的原理
+            1)从机启动成功连接到主机后会发送一个sync命令
+            2)主机接到从机发过来的同步消息后，把主机数据进行持久化，rdb文件，把rdb文件发送给从机，从机拿到rdb文件进行读取(全量复制，主服务器被动进行)
+                每次主服务器进行写操作后，和从服务器进行数据同步(增量复制，主服务器主动进行)。
+            3)全量复制：而从机在接收到数据库文件数据后，将其存盘并加载到内存中。
+            4)增量复制：主机继续将新的所有收集到的修改命令一次传给从机，完成同步
+        主从复制三个典型的问题
+            1)一主二仆
+                特点1：当通过命令配置主从关系，这种关系只是临时的，如果从机关闭后，重启后，该从机会变成主机，
+                    所以如果想当从机重启后还保持主从关系，就需要把配置主从关系命令写到从机的配置文件中。
+                特点2：当从机挂掉，重新启动后，之前的被主机插入的数据仍然能查看到(主服务器会将数据恢复到从服务器中)
+                特点3：当主机挂掉后，从机并不会上位，还是从服务器，并且能在从服务器中看到主服务器挂掉了。
+                    主机重启后，仍然能看到两个从服务器。
+                * 切入点问题，slave1,slave2是从头开始复制还是从切入点开始复制？
+                    比如从k4进来，那之前的k1,k2,k3是否也可以复制？
+                    答：是可以的，当从机重新启动时，k1,k2,k3仍然可以查看到。
+                * 从机是否可以执行写操作？set可否
+                    答：否
+                * 主机shutdown后情况如何?从机是上位还是原地待命？
+                    答：原地待命
+            2)薪火相传
+                指的是从机可以作为主机来用，上一个从机可以是下一个从机的主机，从机同样可以接收其他从机的连接和同步请求
+                那么该从机作为了链条中下一个从机的主机，可以有效减轻master的写压力，去中心化降低风险
+                如果链条中的从机中途变更转向，即某个主机的从机更改成其他主机的从机，则会清除之前的记录，重新建立拷贝最新的
+                风险是一旦某个从机宕机，后面的从机都没法备份，主机挂了，从机还是从机，无法写数据了。
+            3)反客为主
+                当一个主机宕机后，后面的从机可以立刻升为主机，其后面的从机不用做任何修改
+                在唯一的从机后执行命令 slaveof no one ,即可将该从机升为主机，这种方式是手动将从机升为主机
+                可不可以当主机宕机后，从机自动升为主机呢？可以，哨兵模式！
+        哨兵模式
+            是什么？反客为主的自动版，能够后台监控主机是否故障，如果故障了根据投票数自动将从库转换为主库
+            具体步骤：
+                1)在自定义目录中新建sentinel.conf文件，名字不能出错。
+                2)编写sentinel.conf文件，配置哨兵
+                    sentinel monitor mymaster 127.0.0.1 6379 1
+                    其中mymaster是为监控对象(主机)起的服务器名称,1为至少有多少个哨兵同意迁移的数量
+                3)启动哨兵，进入redis/src目录下，执行./redis-sentinel  自定义sentinel.conf的路径
+                4)当主机挂掉后，从机选举中产生新的主机
+                    大概10秒左右可以看到哨兵窗口日志，切换了新的主机，哪个从机会被选举为主机呢？
+                    根据优先级别：slave-priority(redis6.0版本时，名字为replica-priority),默认是100，值越小优先级越高,
+                    原主机重启后会变成从机
+                5)具体哪个从机会被选举为主机呢？
+                    * 首先选择优先级靠前的
+                    * 选择偏移量最大的，偏移量是指获取原主机数据最全的
+                    * 选择runid最小的从机，每一个redis实例启动后都会随机生成一个40位的runid
+        复制延迟
+            这是主从复制的缺点，由于所有写操作都是先在主机上操作，然后同步更新到从机上，所以从主机同步到从机有一定的延迟
+            当系统很繁忙时，延迟问题会更加严重，从机数量的增加也会使这个问题更加严重
+    Redis集群
+        redis产生的问题：
+            1)容量不够，redis如何进行扩容
+            2)并发写操作，redis如何分摊
+            3)另外主从模式，薪火相传模式，主机宕机，导致ip地址发生变化，应用程序中需要修改对应的主机地址，端口等信息
+                之前通过代理主机来解决，但是redis3.0中提供了解决方案，就是无中心化集群配置
+                代理主机是当用户访问时，代理主机将请求转发给合适的服务器，就是反向代理服务器的作用，
+                而无中心化集群指的是，集群中的所有redis服务器都能作为请求的入口，当请求来到不合适的redis服务器时
+                该服务器会将请求转发给其他服务器，减少并发的压力。
+        什么是集群
+            redis集群实现了对redis的水平扩容，即启动n个redis节点，将整个数据库分布存储在这n个节点中，每个结点存储总数据的1/n
+            redis集群通过分区来提供一定程度的可用性：即使集群中有一部分节点失效或者无法进行通信，集群也可以继续处理命令请求。
+
+        搭建集群，在上一个例子一主二从基础之上
+            1)删除三台rdb文件，默认在/var/lib/redis目录下
+            2)修改自定义文件redis6379.conf
+                include /redisFile/redis.conf
+                pidfile "/var/run/redis/redis6379.pid"
+                port 6379
+                dbfilename "dump6379.rdb"
+                # Generated by CONFIG REWRITE
+                daemonize yes
+                always-show-logo yes
+                logfile "/var/log/redis/redis-server.log"
+                save 900 1
+                save 300 10
+                save 60 10000
+                user default on nopass ~* +@all
+                #rdb file location
+                dir "/var/lib/redis"
+                replicaof 127.0.0.1 6381
+
+            修改成：
+                include /redisFile/redis.conf
+                pidfile "/var/run/redis/redis6379.pid"
+                port 6379
+                dbfilename "dump6379.rdb"
+                cluster-enabled yes #打开集群模式
+                cluster-config-file nodes-6379.conf #设置节点配置文件名
+                cluster-node-timeout 15000 #设定节点失联时间，超过该时间(毫秒)，集群自动进行主从切换
+            3)复制redis6379.conf文件，复制成另外5份conf文件，并修改配置文件中部分信息，修改成各自的端口号及文件名
+                本次集群实验配置3主3从，端号是6379,6380,6381,6382,6383,6384，其中6379-6381作为主机，6382-6384作为从机
+                修改各自端口号及文件名有快捷方式：例如编辑进入6380.conf
+                    输入":%s/6379/6380",即可将6380.conf文件中6379字符替换成6380
+            4)根据6个配置文件，启动6个redis进程服务
+                root@keyi:/redisFile# ps -ef | grep redis
+                root       33078   32209  0 09:12 pts/0    00:00:00 grep --color=auto redis
+                root@keyi:/redisFile# redis-server redis6379.conf
+                root@keyi:/redisFile# redis-server redis6380.conf
+                root@keyi:/redisFile# redis-server redis6381.conf
+                root@keyi:/redisFile# redis-server redis6382.conf
+                root@keyi:/redisFile# redis-server redis6383.conf
+                root@keyi:/redisFile# redis-server redis6384.conf
+            5)成功启动后，在/var/lib/redis/目录下会生成各自的nodes-63xx.conf，
+                没有配置集群之前，这个目录放着三台redis服务器的rdb文件。
+            6)将6个节点合成一个集群
+                组合之前，需要确保所有redis实例启动后，nodes-xxx.conf文件都生成正常
+                注意：如果使用apt命令安装redis，则输入以下命令，搭建集群
+                    1)关闭redis.conf中保护模式，改成protected-mode no，并杀掉sentinel哨兵进程
+                        更改后删除6个nodes-xxx.conf文件，并重启6台redis
+                    2)使用命令合并节点
+                        redis-cli --cluster create --cluster-replicas 1 45.32.124.62:6379 45.32.124.62:6380
+                        45.32.124.62:6381 45.32.124.62:6382 45.32.124.62:6383 45.32.124.62:6384
+                    3)[OK] All 16384 slots covered.
+                如果使用解压编译安装的redis，则需要进入redis/src目录下，输上述命令，搭建集群，另外低版本redis需要安装ruby环境(5.0以下)
+                本环境是redis6.0
+            7)测试集群
+                * 以前配置一主二从，使用测试客户端连接redis时，通过redis-cli -p 6379命令连接主机
+                    现在集群方式就不一样了，通过redis-cli -c -p 6379命令连接集群redis进程，-c 表示采用集群策略连接
+                    设置数据会自动切换到相应的写主机。
+                * 连接到测试客户端后，通过cluster nodes命令查看集群信息
+                    root@keyi:~# redis-cli -c -p 6379
+                    127.0.0.1:6379> cluster nodes
+                    e8c792ea07ec119b21bdd508e9f92a0732947991 45.32.124.62:6379@16379 myself,master - 0 1622284829000 1 connected 0-5460
+                    bbe8188b45f482792432178bbaf2361cf6ed27c7 45.32.124.62:6381@16381 master - 0 1622284829000 3 connected 10923-16383
+                    ca9e9b753169c8c60f6bb3b59bf07a5fef741ae9 45.32.124.62:6383@16383 slave bbe8188b45f482792432178bbaf2361cf6ed27c7 0 1622284828957 3 connected
+                    d87dbc28f6d810ad806088dc035f2fe182272213 45.32.124.62:6380@16380 master - 0 1622284829959 2 connected 5461-10922
+                    d5a694e0ed41bf3cc3e71d54b81608fb369e49e5 45.32.124.62:6382@16382 slave d87dbc28f6d810ad806088dc035f2fe182272213 0 1622284830961 2 connected
+                    92bde147200c34524d650966d53654161137b7b0 45.32.124.62:6384@16384 slave e8c792ea07ec119b21bdd508e9f92a0732947991 0 1622284830000 1 connected
+        redis集群如何分配这六个节点？
+            一个集群至少要有三个主节点，选项 --cluster-replicas 1 表示我们希望为集群中的每个主节点创建一个从节点
+            分配原则：尽量保证每个主数据库运行在不同的ip地址，每个从库和主库不在一个ip地址上。
+        什么是slots?
+            slots指的是插槽的意思，一个redis集群包含16384个插槽(0-16383)，数据库中的每个键都属于这16384个插槽的其中一个
+            集群使用公式CRC16(key)%16384来计算键key属于哪个槽，其中CRC16(key)语句用于计算键key的CRC16校验和，这种方式很像使用hash函数计算
+            集群中的每个主节点负责处理一部分插槽，例如主机1负责0-5460，主机2负责5461-10922，主机3负责10923-16383
+            当在主机1保存数据时，redis会计算key值，计算出该数据位于哪一个插槽，如果该数据不属于本主机负责的插槽，就会将
+            请求转交给负责该插槽的主机，让其他处理进行保存处理。
+
+            注意：使用集群后，不能再使用mset,mget命令进行多键操作，可以通过{}来定义组的概念，
+            从而使key中{}内相同的键值对放到同一个slot中去，其实就是根据组指定的数值进行计算属于哪一个插槽
+                127.0.0.1:6379> mset name{keyi} wanyi age{keyi} 22
+                -> Redirected to slot [14360] located at 45.32.124.62:6381
+                OK
+                45.32.124.62:6381> mget name{keyi} age{keyi}
+                1) "wanyi"
+                2) "22"
+
+            计算集群中，key值属于哪一个插槽
+                45.32.124.62:6381> cluster keyslot name
+                (integer) 5798
+                45.32.124.62:6381> cluster keyslot name
+                (integer) 5798
+                45.32.124.62:6381> cluster keyslot keyi
+                (integer) 14360
+            计算某个插槽中有几个key，有几个键，注意每个主机只能看到自己负责的插槽中的数据
+                45.32.124.62:6381> cluster countkeysinslot 14360
+                (integer) 2
+            返回插槽中key值，14360是指定的插槽，10是指定返回的数量
+                45.32.124.62:6381> cluster getkeysinslot 14360 10
+                1) "age{keyi}"
+                2) "name{keyi}"
+        故障恢复
+            如果主节点下线，从节点能否自动升为主节点？注意：15秒超时
+                答：可以，如果某个主机宕机后，则属于该主机的从机就会变成新主机，当原主机恢复后，就变成新主机的从机
+            主节点恢复后，主从关系会如何？主节点回来后变成从机
+            如果所有某一段插槽的主从节点都宕机(某个主机和属于它的从机都宕机了)，redis服务是否还能继续？
+                不一定，如果某个主机和属于它的从机都宕机了，而且redis.conf中的参数cluster-require-full-coverage为yes
+                那么整个集群都挂掉，如果该参数值是no，那么属于该主机负责的插槽全都不能使用，也无法存储。
+
+        注意：即使连接的不是主机，集群会自动切换主机存储，主机写，从机读，无中心化主从集群，
+        无论从哪台主机写数据，其他主机都能读到数据，例如尽管当前6379redis进程是从机，但还是可以接收请求，将请求转发给其他主机处理
+            127.0.0.1:6379> set money 100
+            -> Redirected to slot [11921] located at 45.32.124.62:6381
+            OK
+
+        使用集群的好处及不足
+            好处：实现扩容，分摊压力，无中心化配置相对简单
+            不足：多键操作是不被支持的，多键的redis事务是不被支持的，lua脚本不被支持
+
+    redis的缓存雪崩，穿透，击穿，分布式锁
+        缓存雪崩
+            指的是某一时间段，缓存集中失效，导致请求全部走数据库，有可能搞垮数据库，使整个服务瘫痪。
+            使缓存集中失效的原因：
+                1、redis服务器挂掉了。
+                2、对缓存数据设置了相同的过期时间，导致某时间段内缓存集中失效。
+            如何解决缓存集中失效：
+                1、针对原因1，可以实现redis的高可用，Redis Cluster或者Redis Sentinel(哨兵)等方案。
+                2、针对原因2，设置缓存过期时间时加上一个随机值，避免缓存在同一时间过期。
+        缓存穿透
+            缓存穿透表示查询一个一定不存在的数据，由于没有获取到缓存，所以没写入缓存，导致这个不存在的数据每次都需要去数据库查询，失去了缓存的意义。
+            请求的数据大量的没有获取到缓存，导致走数据库，有可能搞垮数据库，使整个服务瘫痪。
+            比如文章表，一般我们的主键ID都是无符号的自增类型，有些人想要搞垮你的数据库，
+            每次请求都用负数ID，而ID为负数的记录在数据库根本就没有。
+            解决方案：
+                1、对于像ID为负数的非法请求直接过滤掉，采用布隆过滤器(Bloom Filter)。
+                    布隆过滤器底层是一个很长的二进制向量(位图bitmaps)和一系列随机映射函数(哈希函数)
+                2、针对在数据库中找不到记录的，我们仍然将该空数据存入缓存中，当然一般会设置一个较短的过期时间。
+        缓存击穿
+            缓存击穿表示某个key的缓存非常热门，有很高的并发一直在访问，如果该缓存失效，那同时会走数据库，压垮数据库。
+            缓存击穿与缓存雪崩的区别是这里针对的是某一热门key缓存，而雪崩针对的是大量缓存的集中失效。
+            缓存击穿是热点key过期后，数据库瞬时访问量过大。
+            解决方案：
+                1、让该热门key的缓存永不过期。
+                2、使用互斥锁，通过redis的setnx实现互斥锁。
+        分布式锁
+            问题描述：
+                随着业务发展的需要，原单体单机部署的系统被演化成分布式集群系统后，由于分布式系统多线程，多进程并且分布在不同机器上
+                这将使原单机部署情况下的并发控制锁策略失效，单纯的javaAPI并不能提供分布式锁的能力，为了解决这个问题就需要一种跨JVM
+                的互斥机制来控制共享资源的访问，这就是分布式锁要解决的问题
+            分布式锁主流的实现方案
+                1，基于数据库实现分布式锁
+                2，基于缓存(redis)
+                3，基于ZooKeeper
+                每一种分布式锁解决方案都有各自的优缺点
+                性能上：redis最高
+                可靠性：zookeeper最高
+            redis命令实现分布式锁
+                设置分布式锁和过期时间
+                    setnx key value # setnx一般用来设置分布式锁，设置这个key上加锁后，其他请求就不能再设置该key
+                    当该key被删除后(del)，锁就释放了。
+
+                    为了防止上锁后一直持有锁导致的并发性能下降，可以给该锁(key)设置过期时间，这个过期时间的设置尽量和setnx同一条命令
+                    set key value nx(表示上锁) ex second(单位为秒)
+                JAVA代码中实现上锁，释放锁
+                    @SpringBootTest
+                    class RedisDemoApplicationTests {
+                        @Autowired
+                        private RedisTemplate redisTemplate;
+                        @Test
+                        void contextLoads() {
+                            //1，获取锁,第一第二参数是锁的key和value,第三个参数是过期时间，第四个参数是时间单位
+                            Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", "111",3, TimeUnit.SECONDS);
+                            //2.1，获取锁成功，查询num的值
+                            if (lock) {
+                                Object value = redisTemplate.opsForValue().get("num");
+                                //2.2，判断num为空return
+                                if (StringUtils.isBlank((String) value)){
+                                    return;
+                                }
+                                //2.3，有值就转成int
+                                Integer numValue = Integer.valueOf(value + "");
+                                //2.4，把redis的num加1
+                                redisTemplate.opsForValue().set("num",++numValue);
+                                //2.5，释放锁
+                                redisTemplate.delete("lock");
+                            }else {
+                                //3，获取锁失败，每个0.1秒再获取
+                                try {
+                                    Thread.sleep(100);
+                                    contextLoads();
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                UUID防止误删
+                    上述java代码还是有自身的问题的，问题在于，处于并发情况下，当A请求持有锁后，进行自身业务操作，如果进行到一半
+                    突然A服务器卡顿了，过了10秒后，A持有的锁过期后，B拿到了锁，B进行自身业务操作，当B还没释放锁的时候，A又恢复过来了
+                    自己主动释放锁(删除key)，这其实删除的key是B的锁。解决方法是，每次获取锁时，都设置一个随机的value
+                    删除锁之前，判断一下当前的uuid和要释放锁的uuid是否一样，一样就释放锁，不一样就不能释放锁
+                    @Test
+                    void contextLoads() {
+                        //0，生成随机UUID
+                        String uuid = UUID.randomUUID().toString();
+                        //1，获取锁,第一第二参数是锁的key和value,第三个参数是过期时间，第四个参数是时间单位
+                        Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", uuid,3, TimeUnit.SECONDS);
+                        //2.1，获取锁成功，查询num的值
+                        if (lock) {
+                            Object value = redisTemplate.opsForValue().get("num");
+                            //2.2，判断num为空return
+                            if (StringUtils.isBlank((String) value)){
+                                return;
+                            }
+                            //2.3，有值就转成int
+                            Integer numValue = Integer.valueOf(value + "");
+                            //2.4，把redis的num加1
+                            redisTemplate.opsForValue().set("num",++numValue);
+                            //2.5，释放锁之前判断一下 是否是释放当前锁
+                            String lockValue = (String) redisTemplate.opsForValue().get("lock");
+                            if (lockValue!=null&&lockValue.equals(uuid)){
+                                redisTemplate.delete("lock");
+                            }
+                        }else {
+                            //3，获取锁失败，每个0.1秒再获取
+                            try {
+                                Thread.sleep(100);
+                                contextLoads();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                LUA保证删除原子性
+                    redis上锁，删除锁缺乏原子性操作，问题如下:
+                    a操作首先上锁，然后进行自身业务操作，最后删除锁时，首先比较uuid是否一致结果显示数据库中uuid和当前uuid一致
+                    进入if中正要执行删除锁的语句时，此时a持有的锁过期了，该锁过期了，导致b操作拿到锁，b操作拿到锁开始进行自身业务操作
+                    此时a删除了锁，这个删除操作其实删除的是b的锁，这就是没有进行原子性操作造成的问题
+
+                    解决办法：使用lua脚本
+                    lua脚本是将复杂的或者多步的redis操作，写为一个脚本，一次提交给redis执行，减少反复连接redis的次数，提升性能
+                    lua脚本是类似redis事务，有一定的原子性，不会被其他命令插队，可以完成一些redis事务性的操作
+
+                总结：
+                    1)使用uuid上锁
+                    2)使用lua脚本释放锁
+
+            为了确保分布式锁可用，我们至少要确保锁的实现同时满足以下四个条件
+                1)互斥性，在任意时刻，只有一个客户端能持有锁
+                2)不会发生死锁，即使有一个客户端在持有锁的期间崩溃而没有主动释放锁，也能保证后续其他客户端能加锁(设置了过期时间)
+                3)解铃还须系铃人，加锁和解锁必须是同一个客户端，客户端自己不能把别人的锁给删了
+                4)加锁和解锁必须具有原子性(lua脚本实现)
+
+    Redis6新功能
+        ACL
+            Redis ACL是Access Control List(访问控制列表)的缩写，该功能允许根据可以执行的命令和可以访问的键来限制某些连接
+            在Redis5版本之前，Redis安全规则只有密码控制，还有通过rename来调整高危命令比如flushdb，keys*，shutdown等
+            Redis6则提供ACL的功能对用户进行更细粒度的权限控制
+                1)接入权限：用户名和密码
+                2)可以执行的命令
+                3)可以操作的key
+            ACL命令：
+                acl list，展现用户权限列表
+                acl cat，查看当前用户具体能操作哪些命令
+                acl cat string ,查看当前用户对string数据类型可以操作的命令
+                acl set user，创建和编辑用户ACL
+                acl whoami，查看当前用户
+        IO多线程
+            IO多线程其实指客户端交互部分的网络IO交互处理模块多线程，而非执行命令多线程，redis6执行命令依然是单线程
+
+            redis6加入多线程，但跟memcached这种从IO处理到数据访问多线程的实现模式有些差异，Redis多线程部分只是用来
+            处理网络数据的读写和协议解析，执行命令仍是单线程
+            另外，多线程IO默认也是不开启的，需要在配置文件中配置
+                io-threads-do-reads yes
+                io-threads 4
+
+    redis给缓存设置过期时间的用处
+        一般情况下，我们设置保存的缓存数据的时候都会设置一个过期时间。为什么呢？
+        因为内存是有限的，如果缓存中的所有数据都是一直保存的话，分分钟直接Out of memory。
+        Redis自带了给缓存数据设置过期时间的功能，见本文string数据类型
+
+        过期时间除了有助于缓解内存的消耗，还有什么其他用么？
+            很多时候，我们的业务场景就是需要某个数据只在某一时间段内存在，
+            比如我们的短信验证码可能只在1分钟内有效，用户登录的token可能只在1天内有效。
+            如果使用传统的数据库来处理的话，一般都是自己判断过期，这样更麻烦并且性能要差很多。
+
+    redis过期数据的删除策略
+        如果假设你设置了一批key只能存活1分钟，那么1分钟后，Redis是怎么对这批key进行删除的呢？
+        常用的过期数据的删除策略就两个
+            惰性删除:只会在取出key的时候才对数据进行过期检查。这样对CPU最友好，但是可能会造成太多过期key没有被删除。
+            定期删除:每隔一段时间抽取一批key执行删除过期key操作。并且，Redis底层会通过限制删除操作执行的时长和频率来减少删除操作对CPU时间的影响。
+
+        定期删除对内存更加友好，惰性删除对CPU更加友好。两者各有千秋，所以Redis采用的是定期删除+惰性/懒汉式删除 。
+        但是，仅仅通过给key设置过期时间还是有问题的。因为还是可能存在定期删除和惰性删除漏掉了很多过期key的情况。
+        这样就导致大量过期key堆积在内存里，然后就Out of memory了。
+        怎么解决这个问题呢？答案就是:Redis内存淘汰机制。
+
+    redis内存淘汰机制
+        指的是相关问题：MySQL 里有 2000w 数据，Redis中只存20w 的数据，如何保证Redis中的数据都是热点数据?
+        Redis提供6种数据淘汰策略：
+            volatile-lru（least recently used）：从已设置过期时间的数据集（server.db[i].expires）中挑选最近最少使用的数据淘汰
+            volatile-ttl：从已设置过期时间的数据集（server.db[i].expires）中挑选将要过期的数据淘汰
+            volatile-random：从已设置过期时间的数据集（server.db[i].expires）中任意选择数据淘汰
+            allkeys-lru（least recently used）：当内存不足以容纳新写入数据时，在键空间中，移除最近最少使用的 key（这个是最常用的）
+            allkeys-random：从数据集（server.db[i].dict）中任意选择数据淘汰
+            no-eviction：禁止驱逐数据，也就是说当内存不足以容纳新写入数据时，新写入操作会报错。这个应该没人使用吧！
+            4.0 版本后增加以下两种：
+            volatile-lfu（least frequently used）：从已设置过期时间的数据集(server.db[i].expires)中挑选最不经常使用的数据淘汰
+            allkeys-lfu（least frequently used）：当内存不足以容纳新写入数据时，在键空间中，移除最不经常使用的key
+
