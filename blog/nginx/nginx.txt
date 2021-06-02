@@ -1,0 +1,297 @@
+nginx基本概念
+    nginx是什么，做什么事情
+        nginx是一个高性能的http和反向代理web服务器
+        nginx作为http服务器，可以处理静态文件，无缓存的反向代理加速，简单的负载均衡和容错
+        nginx支持热部署
+    反向代理
+        正向代理指的是：用户隐藏自己的ip地址，使用正向代理服务器去访问服务器，正向代理，代理的是客户端用户
+        反向代理指的是：真实服务器端隐藏自己的ip地址，使用反向代理服务器去接收用户请求，反向代理，代理的是服务器端
+    负载均衡
+        当并发请求过大时，单个服务器已经不能解决响应，此时我们通过增加服务器数量，将请求分发到各个服务器上，
+        将原先请求集中到单个服务器上的情况改成将请求分发到多个服务器上，将负载分发到不同的服务器，也就是我们所说的负载均衡
+        负载均衡就是将多个请求平均分摊到各个服务器中
+    动静分离
+        为了加快网站解析速度，可以把动态页面和静态页面由不同的服务器来解析，加快解析速度，降低原来单个服务器的压力
+        即：把静态资源和动态资源分开进行部署
+
+nginx安装，常用命令和配置文件
+    在linux系统中安装linux
+        ubuntu下使用apt install nginx命令
+    nginx常用命令
+        如果是解压编译的方式安装nginx，那么执行命令需要在/usr/local/nginx/sbin目录下
+        如果apt安装nginx，则任意位置即可，下面的命令默认是使用apt方式安装的nginx
+
+        nginx -v        查看nginx版本号
+        nginx -s stop   关闭nginx
+        nginx           启动nginx,使用默认配置文件启动
+        nginx -s reload 重新加载nginx配置文件(nginx.conf)，在nginx服务不关闭的情况下，使修改后的nginx配置文件生效
+        whereis nginx   查看nginx文件位置，这个命令其实是linux的
+    nginx配置文件
+        配置文件位置在/etc/nginx
+        nginx配置文件由三部分组成
+            1)全局块
+                从配置文件开始到events块之间的内容，主要会设置一些影响nginx服务器整体运行的配置指令，主要包括
+                配置运行nginx服务器的用户(组)，允许生成的worker process数，进程PID存放路径，日志存放路径和类型及配置文件的引入等
+                例如：worker_processes auto;
+                    这是nginx服务器并发处理服务的关键配置，worker_processes值越大，可以支持的并发处理量也越多，
+                    但是会受到硬件，软件等设备的制约
+            2)events块
+                events块涉及的指令主要影响nginx服务器与用户的网络连接，常用的设置包括：是否开启对多work process下的网络连接进行序列化
+                是否允许同时接收多个网络连接，选取哪种事件驱动模型来处理连接请求，每个work process可以同时支持的最大连接数等
+                例如： worker_connections 768  就表示每个work process支持的最大连接数为768，
+                    这部分的配置对nginx的性能影响较大，在实际中应该灵活配置
+            3)http块
+                这算是nginx服务器配置中最频繁的部分，代理，缓存和日志定义等绝大多数功能和第三方模块的配置都在这里
+                需要注意的是：http块也可以包括http全局块，server块。
+
+                http全局块配置的指令包括文件引入，MIME-TYPE定义，日志自定义，连接超时时间，单链接请求数上限等
+                server块和虚拟主机有密切关系，虚拟主机从用户角度看，和一台独立的硬件主机是完全一样的，该技术的产生是为了
+                    节省互联网服务器硬件成本，每个http块可以包括多个server块，而每个server块就相当于一个虚拟主机
+                    而每个server块也可以分为全局server块，以及可以同时包含多个location块
+                    * 全局server块，最常见的配置是本虚拟主机的监听配置和本虚拟主机的名称或IP配置
+                    * location块，这块的主要作用是基于nginx服务器接收到的请求字符串(例如：server_name/uri-string)
+                        对虚拟主机名称(也可以是IP别名)之外的字符串(例如前面的/uri-string)进行匹配，对特定的请求进行处理
+                        地址定向，数据缓存和应答控制等功能，还有许多第三方模块的配置也在这里进行
+nginx配置实例
+    实例1：反向代理
+        反向代理案例1：
+            实现效果
+                打开浏览器，在浏览器地址栏输入地址www.123.com，跳转linux系统tomcat主页面中。
+            具体实现
+                1)在linux系统上安装nginx,安装tomcat,使用默认端口8080，并启动起来
+                    * 安装tomcat之前需要安装java环境:sudo apt install openjdk-8-jdk
+                        使用java -version检查安装java环境是否成功。
+                    * 下载tomcat8并且解压
+                        下载：sudo wget https://downloads.apache.org/tomcat/tomcat-8/v8.5.66/bin/apache-tomcat-8.5.66.tar.gz
+                        解压：tar zxf apache-tomcat-8.5.66.tar.gz
+                        启动tomcat：来到tomcat/bin目录下执行:./startup.sh
+                        关闭tomcat：来到tomcat/bin目录下执行:./shutdown.sh
+                    * 设置防火墙
+                        查看当前防火墙已经开放的端口：firewall-cmd --list-all
+                        添加http服务端口：
+                            firewall-cmd --add-service=http --permanent
+                            firewall-cmd --add-port=80/tcp --permanent
+                            firewall-cmd --add-port=8080/tcp --permanent
+                        重新加载防火墙：firewall-cmd --reload
+                        还是不可以的话，可能是vps服务商的防火墙策略原因，去vps服务商官网配置防火墙
+                        本次实验，需要开放8080,8081,8082,9001端口，根据上面命令设置好这些端口
+                    * 测试
+                        在window浏览器中输入http://linux服务器ip:8080，如果设置成功，就会看到tomcat启动页，小猫现身
+                2)在window中的hosts文件中配置域名-ip解析
+                    hosts目录路径：C:\Windows\System32\drivers\etc
+                    添加：自己linux服务器ip地址  	www.123.com
+                    配置好后，我们可以通过在window浏览器中输入：www.123.com:8080，就能访问到tomcat首页
+                    记住一定要刷新本机中的dns缓存，刷新缓存命令：ipconfig/flushdns
+
+                    注意：我们已经实现通过在浏览器输入www.123.com:8080查看到tomcat首页，这个过程中并没有使用反向代理服务器
+                    我们要实现的是，在浏览器输入www.123.com使用默认的80端口即可查看到tomcat首页，这个过程需要我们首先访问
+                    反向代理服务器的ip地址和80端口，由反向代理服务器去将请求转发到我们真正的服务器ip地址和8080端口
+                3)在nginx进行请求转发的配置(反向代理)
+                    server {
+                        listen 80 default_server;   #反向代理服务器监听的端口
+                        server_name 149.28.29.194;  #反向代理服务器的ip地址
+                        location / {
+                            proxy_pass http://127.0.0.1:8080;   #当监听到有请求访问反向代理服务器的80端口，就转发到真实服务器。
+                        }
+                    }
+                    配置好后，重启nginx服务
+                至此，配置nginx配置好后，通过访问在本电脑访问www.123.com，则首先根据我们hosts文件中配置，将www.123.com转换成
+                反向代理服务器的ip地址，即访问反向代理服务器的80端口，此时nginx监听到有请求访问后，将请求转发到真实服务器的ip地址和端口
+                本次实现nginx和tomcat都在一个linux系统上，所以是转发到本地的8080端口。
+        反向代理案例2：
+            实现效果：
+                使用nginx反向代理，根据访问的路径跳转到不同端口的服务中，nginx监听端口为9001
+                访问http://127.0.0.1:9001/edu     直接跳转到127.0.0.1：8080
+                访问http://127.0.0.1:9001/vod     直接跳转到127.0.0.1：8081
+            具体实现：
+                1)搭建两个tomcat服务，监听8080端口，8081端口
+                    直接复制tomcat安装目录到另一个文件夹，修改tomcat/conf/server.xml文件
+                    将监听的端口更改成8081端口，其他监听的端口也更改掉，防止和之前的tomcat监听的端口冲突。
+                    配置好后，启动两个tomcat，最后在window浏览器测试两个tomcat是否成功。
+                2)在tomcat8080的webapps目录下增加edu目录，并在该目录下新增a.html，在该文件中写<h1>this is port 8080</h1>
+                    当我们访问http://linuxIp地址:8080/edu/a.html就可以访问到a.html内容。
+                    在tomcat8081的webapps目录下增加vod目录，并增加b.html，文件内容填8081端口，操作同上，当我们访问8081端口时
+                    即可看到b.html内容
+                    注意：我们要实现的效果是访问服务器的9091端口，路径是/edu时，给我找到tomcat8080端口，显示edu/a.html页面
+                    路径是/vod时，给我找到tomcat8081端口，显示vod/b.html页面
+                3)配置反向代理服务器，nginx.conf，并重新加载配置文件启动nginx
+                    server {
+                        listen 9001 default_server;
+                        server_name 149.28.29.194;
+
+                        location ~ /edu/ {
+                                proxy_pass http://127.0.0.1:8080;
+                        }
+
+                        location ~ /vod/ {
+                                proxy_pass http://127.0.0.1:8081;
+                        }
+                    }
+                    配置完毕后，实现的效果是：访问http://149.28.29.194:9001/edu/a.html后
+                    反向代理服务器监听到该请求，根据路径中edu，就去访问本地8080端口，即我们配置的tomcat8080服务的webapps下的
+                    edu项目下的a.html，相当于将请求替换成了：http://149.28.29.194:8080/edu/a.html
+                4)location指令说明
+                    该指令用于匹配URL，语法如下：
+                        location [ = | ~ | ~* | ^~ ] uri {
+                        }
+                    * = :用于不含正则表达式的uri前，要求请求字符串与uri严格匹配，如果匹配成功，就停止继续向下搜索
+                            并立即处理该请求
+                    * ~ :用于表示uri包含正则表达式，并且区分大小写，例如edu和EDU
+                    * ~* :用于表示uri包含正则表达式，并且不区分大小写
+                    * ^~ :用于不含正则表达式的uri前，要求nginx服务器找到标识uri和请求字符串匹配度最高的location后
+                            立即使用此location处理请求，而不再使用location块中的正则uri和请求字符串做匹配
+                            注意：如果uri包含正则表达式，则必须要有~或者~*标识
+
+    实例2：负载均衡
+        实现效果
+            浏览器地址栏输入地址http://linux服务器地址/edu/a.html，实现有负载均衡的效果，即请求平均分摊到两个端口
+            中，8080,8081.
+        具体实现
+            1)准备两台tomcat服务器，一台8080，一台8081
+            2)在两台tomcat里面webapps目录中，创建名称是edu文件夹，在edu文件夹中创建页面a.html，用于测试
+            3)在nginx的配置文件中进行负载均衡的配置
+                http{
+                    upstream myserver {
+                        #ip_hash 这里千万不能使用ip_hash机制，大坑，ip_hash机制是让用户访问同一个后台tomcat。
+                        server 149.28.29.194:8080 weight=1;
+                        server 149.28.29.194:8081 weight=1;
+                        #fair
+                    }
+
+                    server {
+                        listen 80;
+                        server_name 149.28.29.194;
+                        location / {
+                                proxy_pass http://myserver;
+                        }
+                    }
+                }
+            实现效果就是：当我以http://linux服务器地址/edu/a.html请求发送到反向代理服务器后，
+            反向代理服务器将所有这种请求平均分摊到两个tomcat中去。
+        nginx中负载均衡的策略
+            1)轮询(默认)
+                每个请求按时间顺序逐一分配到不同的后端服务器，如果后端服务器宕机，能自动剔除，就是如果其中有一台后端服务器宕机
+                就不让这台后端服务器处理请求，听起来像是屁话。
+            2)weight(权重策略)
+                weight代表权重，默认为1，权重越高被分配的客户端请求越多
+                指定轮询几率，weight和访问比率成正比，用于后端服务器性能不均的情况
+            3)ip_hash
+                每个请求按访问ip的hash结果分配，这样每个访客固定访问一个后端服务器，可以解决session的问题
+                简而言之，你每次访问的都是后端同一个服务器，因为你的访问ip不变，计算后hash结果自然一样的。
+            4)fair(第三方)
+                按后端服务器的响应时间来分配请求，响应时间短的优先分配
+    实例3：动静分离
+        Nginx动静分离简单来说就是把动态跟静态请求分开，不能理解成只是单纯的把动态页面和静态页面物理分离。
+        严格意义上说应该是动态请求跟静态请求分开，可以理解成使用nginx处理静态页面，tomcat处理动态请求。
+        动静分离从目前实现角度来讲大致分为两种：
+            一种是纯粹把静态文件独立成单独的域名，放在独立的服务器上，也是目前主流推崇的方案
+            另外一种就是动态跟静态文件混合在一起发布，通过nginx来分开。
+        第二种方式的实现：
+            通过location指定不同的后缀名实现不同的请求转发，通过expires参数设置，可以使浏览器缓存过期时间，减少与服务器之间的请求和流量。
+            具体expires定义：是给一个资源设定一个过期时间，也就是说无需去服务端验证，直接通过浏览器自身确认是否过期即可，
+            所以不会产生额外的流量，此种方法非常适合不经常变动的资源(如果经常更新的文件，不建议使用expires来缓存)
+            如果给一个资源设置过期时间为3天，表示在这三天之内访问这个url，发送一个请求，比对服务器该文件最后更新时间没有变化，
+            则不会从服务器抓取，返回状态码304，如果有修改，则直接从服务器重新下载，返回状态码200
+        动静分离实例：
+            实验使用nginx第一种方式，实现动静分离
+            实现效果：通过nginx将静态资源的请求转发到linux系统静态资源位置，动态请求则转发给tomcat
+            实现过程
+                1)在linux系统中准备静态资源，用于访问
+                    创建目录/data/image和www文件夹，在这两个目录下放一些静态资源，html页面和图片
+                2)在nginx.conf中进行配置
+                     server {
+                            listen 80;
+                            server_name 149.28.29.194;
+                            location /www/ {
+                                    root /staticData/;
+                                    #列出访问目录，即访问http://149.28.29.194/www/时，显示/staticData/www目录下所有文件
+                                    autoindex on;
+                            }
+
+                            location /image/ {
+                                    root /staticData/;
+                                    autoindex on;
+                            }
+                        }
+                3)我们通过访问http://149.28.29.194/image/1.jpg时，反向代理服务器匹配到image路径后，然后
+                    找到该linux系统下/staticData/image/1.jpg资源
+
+                注意：location中的uri(/www/,/image/)，要求你在/staticData/目录下必须有这些目录，www,image
+                    nginx先找到staticData目录，再根据你的uri(www，image)，在staticData目录下找这些目录。
+
+    实例4：配置高可用集群
+        nginx高可用指的是，如果nginx宕机了，从机上位接收请求。
+        nginx高可用集群配置
+            1)在两台服务器上安装nginx
+            2)在两台服务器上安装keepalived，检测nginx服务是否正常，如果主机不正常，则从机上位
+                keepalived是集群管理中保证集群高可用的一个服务软件，其功能类似于heartbeat，用来防止单点故障。
+                * ubuntu上安装keepalived，apt install keepalived
+                * 安装完成后，会自动地在/etc/下创建keepalived文件夹，这时还没有keepalived.conf，我们需要手动创建这个配置文件
+                    vim keepalived.conf，因为该文件中会引用到另一个脚本文件，所以同样创建一个a.sh
+                * keepalived.conf文件内容如下：
+                    global_defs {
+                            router_id 45.32.124.62 #你的ip地址
+                            script_user  root
+                            enable_script_security
+                    }
+                    vrrp_script chk_http_port {
+                        script "/etc/keepalived/a.sh"
+                        interval 2 #（检测脚本执行的间隔）
+                        weight 2
+                    }
+                    vrrp_instance VI_1 {
+                        state MASTER # 备份服务器上将 MASTER 改为 BACKUP
+                        interface ens3  #网卡，可以通过ifconfig查看
+                        virtual_router_id 51 # 主、备机的 virtual_router_id 必须相同
+                        priority 100 # 主、备机取不同的优先级，主机值较大，备份机值较小
+                        advert_int 1
+                        authentication {
+                            auth_type PASS
+                            auth_pass 1111
+                        }
+                        virtual_ipaddress {
+                            192.128.8.230 # VRRP H 虚拟地址
+                        }
+                        track_script {
+
+                            chk_http_port       #调用执行脚本
+
+                        }
+                    }
+                * a.sh文件内容如下
+                    #!/bin/bash
+                    #检测nginx是否启动了
+                    A=`ps -C nginx --no-header |wc -l`
+                    if [ $A -eq 0 ];then    #如果nginx没有启动就启动nginx
+                            systemctl start nginx                #重启nginx
+                            if [ `ps -C nginx --no-header |wc -l` -eq 0 ];then    #nginx重启失败，则停掉keepalived服务，进行VIP转移
+                                    killall keepalived
+                            fi
+                    fi
+                * 给a.sh文件赋予权限，chmod 775 /etc/keepalived/a.sh
+            3)两台服务器的keepalived配置好后，接下来启动nginx和keepalived
+                启动keepalived:systemctl start keepalived.service
+                重新启动keepalived:systemctl restart keepalived.service
+                查看：ps -ef | grep keepalived
+            4)测试
+                测试失败，我看别人的实验，两台nginx都是在同一个局域网内，但我两台nginx服务在不同的ip网段上，不知道怎么配置
+                即，keepalived的节点(两台nginx服务器)都要在同一个局域网内，且虚拟地址也是局域网中的一个地址
+nginx执行原理
+    1)master和worker
+        客户端发出请求，请求首先来到nginx的master进程，master将请求分发给各个worker，各个worker争抢该请求
+        得到请求的worker将请求转发给tomcat，由tomcat对请求进行处理(如果是动态请求的话)
+    2)nginx中一个master和多个worker的好处
+        * 可以使用nginx -s reload热部署，利用nginx进行热部署操作
+        * 每个worker是独立的进程，如果有其中的一个worker出现问题，其他worker仍然能处理请求，不会造成服务中断
+    3)设置多少worker合适
+        Nginx同redis类似，都采用了io多路复用机制，每个worker都是一个独立的进程，但每个进程里只有一个主线程，通过异步非阻塞的方式来处理请求
+        每个worker的线程可以把一个cpu的性能发挥到极致，所以worker数和服务器的CPU数相等是最为合适的，设少了会浪费CPU，设多了会造成CPU频繁切换
+        上下文带来的损耗
+        worker_processer 4
+    4)一个worker进程最大能建立多少个连接
+        worker_connection 1024，这个值是表示每个worker进程所能建立连接的最大值
+        一个请求占worker进程多少个连接数呢？
+        答：2个或者4个，4个表示worker进程需要与tomcat进行请求(动态请求)，2个是只单独与客户端交互(静态请求)
+        例如：nginx有一个master，有四个worker，每个worker支持最大连接数1024，则该nginx支持的最大并发数是多少？
+            答：如果是静态请求：则worker_processer*worker_connection/2
+                如果是动态请求：则worker_processer*worker_connection/4
