@@ -1,0 +1,125 @@
+maven是自动化构建工具，对生产环境下多框架，多模块整合开发有重要作用
+类似的自动化构建工具有：Ant,Gradle
+
+构建过程中的各个环节:清理，编译，测试，报告，打包，安装，部署
+构建(build),是面向过程的(从开始到结尾的多个步骤)，涉及到多个环节的协同工作
+    清理：删除以前的编译结果，为重新编译做好准备
+    编译：将java源程序编译为字节码文件，批量的编译为class文件
+    测试：针对项目中的关键点进行测试，确保项目在迭代开发过程中关键点的正确性
+    报告：在每一次测试后以标准的格式记录和展示测试结果
+    打包：将一个含有诸多文件(class文件)的工程封装为一个压缩文件用于安装或部署，java工程对应jar包，web工程对应war包
+    安装：在Maven环境下特指将打包结果，jar包或者war包安装到本地仓库中
+    部署：将打包的结果部署到远程仓库或将war包部署到服务器上运行
+
+Maven核心概念
+    1，POM：一个文件，名称是pom.xml，pom翻译过来叫做项目对象模型
+        maven把一个项目当做一个模型使用，控制maven构建项目的过程，管理jar依赖
+    2，约定的目录结构：maven项目的目录和文件的位置都是规定的
+    3，坐标：是一个唯一的字符串，用来表示资源的
+    4，依赖管理：管理你的项目可以使用jar文件
+    5，仓库管理(了解)：你的资源存放的位置，即maven下载的jar包存放的位置
+    6，生命周期(了解)：maven工具构建项目的过程，就是生命周期：清理，编译，测试，报告，打包，安装，部署
+    7，插件和目标(了解)：执行maven构建的时候用的工具是插件
+    8，继承，版本仲裁
+    9，聚合，一键构建多个项目
+
+maven工具的安装和配置
+    1)需要从maven的官网下载maven的安装包
+    2)解压安装包，解压到一个目录，非中文目录
+        子目录：
+            bin:可执行程序，主要是mvn.cmd
+            conf:maven工具本身的配置文件，settings.xml
+    3)配置环境变量，maven是java写的，maven执行之前需要有java环境
+        在系统的环境变量中，指定一个M2_HOME的名称，指定它的值是maven工具安装目录，bin之前的目录
+        然后在path中，配置%M2_HOME%\bin，(其实可以直接配置到bin)
+    4)验证maven是否成功配置环境
+        cmd中直接输入mvn -v
+
+maven本地默认仓库位置：C:\Users\登录操作系统的用户名\.m2\repository
+本地仓库的位置可以修改，修改maven的settings.xml文件的localRepository
+    在localRepository中指定你的目录，不要使用中文目录
+    例如：<localRepository>D:/maven/repository</localRepository>
+
+仓库：
+    我们的本地仓库存放着maven使用的插件(各种jar)和项目使用的jar(第三方的工具，druid，mysql等)
+    仓库的分类
+        本地仓库：就是你个人计算机上的文件夹，存放各种jar
+        远程仓库：在互联网上，使用网络才能使用的仓库
+            中央仓库，最权威，所有开发人员都共享使用的一个集中的仓库
+            中央仓库的镜像，就是中央仓库的备份，在各大洲，在重要城市都是镜像
+            私服(Nexus)，在公司内部，在局域网中使用的，不是对外使用的
+    仓库的使用：如使用mysql依赖，maven先在本地仓库找，再去私服中找，再去镜像找，再去中央仓库找。
+
+
+POM.xml中的标签
+    1)坐标：GAV：唯一值，在互联网中唯一标识一个项目
+        groupId：组织ID，域名倒写
+        artifactId：项目名称，也是模块名称，对应groupId中项目中的子项目
+        version:项目的版本号，如果是不稳定版本，版本较新，通常在版本后带-SNAPSHOT
+    2)packaging：项目打包类型(打包后压缩文件的扩展名)，可以使用jar，war，rar，ear,pom，默认是jar，web应用是war
+    3)dependencies和dependency：依赖管理，GAV存放处
+    4)properties：配置属性设置，可以使用${标签名}取属性的值，例如项目构建源码编码方式，一般设置为UTF-8，防止中文乱码
+        除了使用maven自带的属性，例如下面这些，还可以使用自定义的属性，即标签名自定义，取值还是使用${标签名}的方式。这种方式叫配置全局变量
+        全局变量一般用来定义版本号
+        <properties>
+            <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+            <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+            <java.version>1.8</java.version>
+        </properties>
+    5)build：build表示与构建相关的配置
+    6)parent：在maven中，如果多个模块都需要声明相同的配置，有相同的依赖，或者相同的组件配置等
+        也有类似java的继承机制，用parent声明要继承的父工程的pom配置，就是使用springboot时使用的parent标签
+        由父工程指定版本号，子工程并不指定版本号，也叫作版本仲裁。
+        注意：
+            1，父工程用作依赖版本号管理，所以pom.xml中打包方式不是jar，war，而是pom
+            2，配置<relativePath>,指的是以当前pom文件为基准的父工程pom.xml文件的相对路径，
+                即从当前pom.xml到父工程pom.xml的相对路径
+            3，子工程中使用parent标签后，然后删除子项目的重复坐标，即groupId,version，只需保留artifactId
+            4，父工程中依赖dependencies标签被包含在dependencyManagement标签中，表示依赖管理。
+            5，配置继承后，执行安装命令时要先安装父工程
+    7)modules：聚合：在Maven的多模块开发中，为了统一构建整个项目的所有模块，可以提供一个额外的模块
+        该模块打包方式为pom，并且在其中使用modules聚合其他模块，这样通过本模块就可以一键自动识别模块间
+        的依赖关系来构建所有模块，叫Maven的聚合。
+        聚合标签modules，一般配置在父工程之中，用作一键构建项目，例如一键打包，一键编译，一键部署
+    8)scope:依赖范围，即依赖的有效范围,也就是在maven构建项目的哪些阶段中起作用,
+        其值有：compile,test,provided，默认是compile，provided意思是该jar包是提供者，只在编译，测试阶段起作用
+        打包部署时就不需要了，例如servlet，jsp依赖
+                        compile         test            provided
+        对主程序是否有效       是            否               是
+        对测试程序是否有效     是             是               是
+        是否参与打包          是             否               否
+        是否参与部署          是             否               否
+    9)build下的resources，资源插件，该插件作用是将src/main/java目录下的非java文件拷贝到target/classes目录中，
+        默认情况下，不配置资源插件的时候，项目源文件编译后，会将java目录中java文件，resources目录所有文件都拷贝到target/classes目录中
+        但并不拷贝java目录中非java文件，资源插件就是拷贝java目录中非java文件到target/classes目录中，
+        例如：mybatis中与dao文件放在一起的*.mapper文件。
+
+maven的常用命令
+    1，mvn -v：查看mvn版本
+    2，tree Hello：在Hello项目的同级目录下执行该命令，可以查看Hello项目的目录结构
+    3，mvn clean：清理，会删除原来编译和测试的目录，即target目录，但是已经install到仓库里的包不会删除
+    4，mvn compile：编译项目中src/main目录下的所有java文件成class文件，该命令在与项目中pom.xml文件同级目录执行
+        例如：---projects
+                ---Hello
+                    ---src
+                    ---pom.xml
+                在Hello项目下的pom.xml同级目录下执行mvn compile即可编译Hello项目
+        该命令执行后，结果是在项目的src目录同级目录下生成target目录(结果目录),编译后的class文件都拷贝到target目录下的classes目录中
+        同时把main/resources目录下的所有文件，都拷贝到target/classes目录下
+    5，mvn test-compile：编译测试程序，会把编译后的class文件拷贝到target目录下的test-classes目录中
+    6，mvn test：测试程序，会生成一个目录surefire-reports，在target目录中，保存着测试结果
+    7，mvn package，打包主程序，会编译，编译测试，测试，并且按照pom.xml配置把主程序打包生成jar包或者war包
+        打包只会将src/main下的所有内容打成jar或者war包
+    8，mvn install，安装主程序，会把本工程打包，并且按照本工程的坐标保存到本地仓库中
+    9，mvn deploy，部署主程序，会把本工程打包，按照本工程坐标保存到本地库中，并且还会保存到私服仓库中，
+        还会自动把项目部署到web容器中
+    注意：执行以上命令必须在命令行进入pom.xml所在目录(除了1和2)
+
+在IDEA中配置自己的maven
+    除了配置maven的主目录，maven的配置文件，maven的本地仓库以外
+    还可以配置运行程序(Runner)中的JRE为自己的JDK版本号，另外可以配置VM Opinions
+    添加：-DarchetypeCatalog=internal，可以使得maven项目更快构建，因为maven默认需要联网下载模板，
+    该命令表示使用本地内部的maven模板。
+
+
+
