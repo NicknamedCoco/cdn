@@ -1,0 +1,118 @@
+swagger
+    API框架，RestFul Api文档在线自动生成工具(API文档与API定义同步更新)，并可以在线测试Api接口
+
+导入swagger依赖
+    <!--swagger-->
+    <dependency>
+        <groupId>com.spring4all</groupId>
+        <artifactId>swagger-spring-boot-starter</artifactId>
+        <version>1.9.0.RELEASE</version>
+    </dependency>
+
+开启及配置swagger
+    1，当我们配置好swagger配置类后，访问http://localhost:8081/swagger-ui.html，
+        就可以看到默认配置的swagger扫描的接口以及实体类
+        @Configuration
+        @EnableSwagger2     //开启Swagger
+        public class SwaggerConfig {}
+    2，我们也可以配置swagger文档的一些基本信息
+        @Configuration
+        @EnableSwagger2     //开启Swagger
+        public class SwaggerConfig {
+            /**
+             * Swagger的bean实例，Docket
+             */
+            @Bean
+            public Docket docket(){
+                return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo());
+            }
+
+            /**
+             * 配置swagger文档基本信息
+             */
+            public ApiInfo apiInfo(){
+                //个人信息
+                Contact contact = new Contact("万一", "http://www.keyi.world", "one.dayinaug@gmail.com");
+                return new ApiInfo(
+                        "万一的API文档",
+                        "背负火影之名，我绝不能输",
+                        "v1.0",
+                        "http://www.keyi.world",
+                        contact,
+                        "Apache 2.0",
+                        "http://www.apache.org/licenses/LICENSE-2.0",
+                        new ArrayList());
+            }
+        }
+    3，swagger配置扫描接口，按照指定规则扫描控制器接口及实体类
+        @Bean
+        public Docket docket(){
+            /**
+             * apiInfo()，配置swagger文档的基本信息，第2步已配置
+             * select().apis(RequestHandlerSelectors.basePackage("world.keyi.arsystem.controller"))，配置只扫描指定的包路径
+             * paths(PathSelectors.ant("/user/**"))，配置只扫描指定的请求，即只扫描路径中为"/user/**"的控制器接口
+             * enable(true)，表示是否开启swagger文档，使得在浏览器中访问API文档，默认为true
+             */
+            return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo())
+                    .enable(true)
+                    .select().apis(RequestHandlerSelectors.basePackage("world.keyi.arsystem.controller"))
+                    .paths(PathSelectors.ant("/adminApi/user/**"))
+                    .build();
+        }
+    4，根据环境配置swagger文档生不生效，例如swagger文档只在开发，测试环境下生效，在发布环境下不生效，生效不生效指的是能不能在浏览器中打开swagger文档
+        通过修改Docket的enable即可
+        1)创建三个配置文件，作为三个不同环境，application.yaml，application-dev.yaml，application-pro.yaml
+            并在application.yaml中指定当前激活的环境spring.profiles.active=dev，即表示当前项目处于开发环境中
+        2)在注入Docket时，根据当前环境，判断是否开启或关闭swagger功能
+            @Bean
+            public Docket docket(Environment environment){
+                /*
+                    指定如果是dev，test环境，则开启swagger文档，否则关闭swagger文档
+                    environment.acceptsProfiles()的作用是监听当前激活的环境。
+                    本例中，如果在配置文件中将spring.profiles.active改为pro，则swagger文档不生效，即浏览器中打不开swagger文档。
+                */
+                Profiles profiles = Profiles.of("dev","test");
+                boolean flag = environment.acceptsProfiles(profiles);
+                return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo())
+                        .enable(flag)
+                        .select().apis(RequestHandlerSelectors.basePackage("world.keyi.arsystem.controller"))
+                        .build();
+            }
+    5，配置swagger文档的分组
+        @Bean
+        public Docket docket(){
+            return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo())
+                    .groupName("万一")
+                    .build();
+        }
+        如何配置多个分组，每个分组之中的接口由不同的人开发呢？只需要配置多个Docket实例即可，每个人负责不同的分组中的接口
+            @Bean
+            public Docket docket2(){
+                return new Docket(DocumentationType.SWAGGER_2).groupName("A")
+                        .select().paths(PathSelectors.ant("/adminApi/case/**")).build();
+            }
+
+            @Bean
+            public Docket docket3(){
+                return new Docket(DocumentationType.SWAGGER_2).groupName("B")
+                        .select().paths(PathSelectors.ant("/adminApi/common/**")).build();
+            }
+
+            @Bean
+            public Docket docket4(){
+                return new Docket(DocumentationType.SWAGGER_2).groupName("C")
+                        .select().paths(PathSelectors.ant("/adminApi/doctor/**")).build();
+            }
+    6，配置实体类注释
+        当我们的接口方法返回值类型是某个实体类时，该实体类就会被swagger框架扫描到，从而输出在swagger文档中
+        通过在类上标注@ApiModel("注释")注解，可以使得swagger文档中对该类有相应的注释，等价于@Api(tags="注释")，一般用于实体类
+        通过在类的字段上标注@ApiModelProperty("注释")注解，使得swagger文档中对该字段有相应的注释。一般用于实体类
+        通过在参数上标注@ApiParam("注释")注解，可以使得swagger文档中对该参数上有相应的注释，一般用于控制器方法参数上
+        通过在类的方法上标注@ApiOperation("注释")注解，可以使得swagger文档中对该方法有相应的注释。一般用于控制器方法
+
+
+
+
+
+
+
