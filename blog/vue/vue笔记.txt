@@ -1,0 +1,3116 @@
+任务：10月份之前看完vue网课，共232课，
+    8月18号，看到51课，完成，
+    8月19号，看到62课，完成
+    8月20号，看到72课，完成
+    8月21号，看到85课，失败
+    8月22号，看到93课，失败
+    8月30号，看到102课，失败看到100
+    8月31号，看到111课,完成
+    9月1号，看到118课，完成
+    9月2号，看到129课，完成
+    9月3号，看到141课
+    9月4号，看到147课，星期六，总之，这周5号，看到147课
+    到147课时，学习完毕，开始项目
+    到19号之前，完成双向绑定，组件化开发，vue路由,vuex,axios
+    还剩下11天，还剩下课时85课。
+
+
+npm和rpm
+    npm是node包管理工具，Node Package Manager
+    rpm是红帽包管理工具，RedHat Package Manager
+
+vue的基本介绍
+    响应式指的是：当请求的数据发生改变后，并不需要更改页面，页面数据会自动发生改变。
+    案例，简单的计数器：
+        <body>
+            <div id="app">
+                <span>{{num}}</span>
+                <button v-on:click="add">+</button>
+                <button v-on:click="sub">-</button>
+            </div>
+        </body>
+        <script>
+            let app = new Vue({
+                el: '#app',
+                data: {
+                    num:0
+                },
+                methods:{
+                    add:function () {
+                        this.num++
+                        console.log("+号按钮被点击");
+                    },
+                    sub:function () {
+                        this.num--
+                        console.log("-号按钮被点击");
+                    }
+                }
+            });
+        </script>
+
+    vue中mvvm的概念：Model View ViewModel
+        view指的是视图层，通常是DOM层，model指的是数据层，在计数器案例中是app实例中的data属性值
+        vueModel指的是视图模型层，视图模型层是view和model沟通的桥梁，可以将模型层数据绑定到view中，也可以监听视图层的事件
+
+    创建vue实例时所传递的对象叫options对象(实际上只是接受该对象的参数名叫options)，这个options对象可以包含以下属性
+        - el，类型：string|HTMLElement，作用：决定之后vue实例会管理哪一个DOM
+        - data，类型：Object|function(组件当中，data必须是函数)，作用：vue实例对应的数据对象
+        - methods，类型：{[key:string]:function}，作用：定义属于vue的一些方法，可以在其他地方调用，也可以在指令中使用
+        - beforeCreate,类型：function，作用：钩子函数，等待vue调用我们的函数，也叫生命周期函数
+        - created,类型：function，作用：当vue内部生命周期到created时期时，会调用我们定义的函数，也叫钩子函数，等待vue框架调用
+        - mounted，类型：function，作用：同上，不过是不同时期调用的。
+vue基础语法
+    插值操作
+        插值操作指的是如何将data中的文本数据，插入到html中
+        * 我们使用的{{}}，双大括号的语法，是Mustache语法，双大括号中除了写变量，还可以写表达式
+            案例：<span>{{message}}</span>
+        * v-once指令，表示该DOM只会更改一次，之后并不会随着data数据改变而改变DOM中的数据。
+            如果没有该指令，则只要data中数据改变后，对应的DOM会响应该数据，从而DOM中数据发生改变，这就是响应式
+            案例：<span v-once>{{message}}</span>
+        * v-html指令，解析数据中的标签属性
+            案例：
+                <span v-html="message"></span>
+                data: {
+                    message:'<a href="http://www.keyi.world">个人网站</a>'
+                }
+        * v-text指令，与Mustache语法类似，将数据插入到DOM中，相对而言，没有Mustache语法好
+            案例：
+                <span v-text="message"></span>
+                data: {
+                    message:'你好啊'
+                }
+        * v-pre指令，表示该DOM不进行DOM数据绑定，将该DOM中的数据原封不动的展示出来
+            案例：<span v-pre>{{message}}</span>  //显示{{message}}
+        * v-cloak指令，解决插值闪烁问题，插值闪烁指的是当js代码还未被加载时，页面显示{{message}}
+            当js加载后，才会显示实际数据，就会存在这种画面:{{message}}过了一段时间变成”你好啊“，这就是插值闪烁
+            而当DOM标签使用v-cloak标签后，配合css的使用，即可解决插值闪烁。
+            案例如下：
+                <style>
+                    [v-cloak] {
+                        display: none;
+                    }
+                </style>
+                <div id="app">
+                    <span v-cloak>{{message}}</span>
+                </div>
+                <script>
+                    setTimeout(function () {
+                        let app = new Vue({
+                            el: '#app',
+                            data: {
+                                message:'你好啊'
+                            },
+                        });
+                    },1000)
+                </script>
+            当js代码未被加载时，DOM标签因为存在v-cloak属性，被css限制展示，隐藏起来了
+            当js代码加载后，vue会删除v-cloak属性，使得DOM标签再次被展示，同时数据也被渲染出来。
+            不过听说这个指令已经不用了，都用的是虚拟DOM，继续学习吧
+    绑定属性
+        插值操作是把数据绑定到文本中，用于展示数据，而绑定属性是将数据绑定到DOM标签的属性中
+        * v-bind基本使用
+            该指令用于绑定属性
+            简单的案例：
+                <img v-bind:src="imgUrl" alt="">
+                data: {
+                    imgUrl:'http://图片地址'
+                }
+            该指令的语法糖是省略掉v-bind,即直接写成<img :src="imgUrl" alt="">也是可以的
+        * v-bind动态绑定class属性之对象语法，class属性值中传递的是一个对象
+            通过向class值中传入一个对象，对象的属性表示class名称，对象的属性值是一个boolean值，
+            当boolean值为true时，则BOM标签的class值就会应用对象的对应属性名，否则不应用
+            案例1：
+                <style>
+                    .a{
+                        color: red;
+                    }
+                    .b{
+                        color: aqua;
+                    }
+                </style>
+                <h2 :class="{a:isA,b:isB}">{{message}}</h2>
+                data: {
+                    message : '你好，李银河',
+                    isA: true,
+                    isB: false
+                }
+                上面的案例则会显示，当isA为true，isB为false时，内容显示红色，否则显示其他颜色
+            案例2：根据按钮点击，切换文本的颜色
+                <style>
+                    .a{
+                        color: red;
+                    }
+                    .b{
+                        color: aqua;
+                    }
+                </style>
+                <div id="app">
+                    <h2 :class="{a:isA,b:isB}">{{message}}</h2>
+                    <button v-on:click="exchange">改变颜色</button>
+                </div>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message : '你好，李银河',
+                        isA: true,
+                        isB: false
+                    },
+                    methods:{
+                        exchange:function (){
+                            this.isA=!this.isA;
+                            this.isB=!this.isB;
+                        },
+                    }
+                });
+            你还可以添加一个固定的class值，这个值经过vue解析后，会和动态的class值进行合并，编译后，class属性值为title,a,b(如果a,b都为true的话)
+                <h2 class="title" :class="{a:isA,b:isB}">{{message}}</h2>
+            另外，值得注意的是，如果对象语法方式要添加的字段太长，你也可以写成methods的形式或者computed(计算属性)的形式
+            案例1修改如下：
+                <h2 :class="getClasses()">{{message}}</h2>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message : '你好，李银河',
+                        isA: true,
+                        isB: false
+                    },
+                    methods:{
+                        getClasses:function () {
+                            return {a:this.isA,b:this.isB};
+                        }
+                    }
+                });
+        * v-bind动态绑定class属性之数组语法
+            这是另一种绑定class属性的方法
+            直接使用数组：<h2 :class="['a','b']">{{message}}</h2>，这种方式class的a,b是固定的死值，字符串
+            如果去掉单引号，则表示一个变量，引用data中的实际数据了，同样的，数组语法的方式也可以使用methods或者computed的形式
+            值得注意的是：千万不要忘记v-bind最初的使用方式，仅仅使用固定值和变量即可，v-bind初始方法适用于所有属性绑定。
+        * v-bind动态绑定style属性之对象语法
+            绑定style属性和绑定class属性类型差不多，绑定style属性也有对象语法和数组语法，
+            值得注意的是,我们在写key的时候，可以写font-size或者FontSize，另外对象的值可以是固定值'50px'，也可以是data中的变量
+            如果是固定值，就是字符串，一定要用单引号包含，变量才不用单引号包含，这个规则同样适用于绑定class
+            最后，就像绑定class属性一样，你也可以写成函数的形式去调用，自定义函数写在methods中。
+                <h2 :style="{fontSize:'50px'}">{{message}}</h2>
+        * v-bind动态绑定style属性之数组语法
+            与绑定class属性一致，值得说明的是，class属性绑定的是单个值，而style属性要绑定一个对象，因为style样式必须有key和value
+            又是怎么实现的呢？下面是示例代码：
+            <div id="app">
+               <span :style="[baseStyle]">{{message}}</span>    //数组中可以有更多的元素，该元素是一个引用data中的对象
+            </div>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message:'加油!',
+                        baseStyle:{
+                            fontSize:'100px',
+                            color: 'red'
+                        }
+                    },
+                });
+            </script>
+    计算属性
+        计算属性指的是在插值的过程中，为了方便，将值重新设置成一个新值，插入到DOM结点中。
+        * 计算属性的基本使用
+            演示计算属性是如何简化原始插值的
+            <div id="app">
+                <span>{{firstName}} {{lastName}}</span><br>
+                <span>{{firstName+" "+lastName}}</span><br>
+                <span>{{getFullName()}}</span><br>
+                <span>{{fullName}}</span><br>   //计算属性是不需要使用fullName()方式调用
+            </div>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        firstName:'万',
+                        lastName:'一'
+                    },
+                    computed:{
+                        //fullName是计算后的属性，所以虽然是函数类型，但命名时变量名应该写成属性方式
+                        fullName:function () {
+                            return this.firstName+" "+this.lastName;
+                        }
+                    },
+                    methods:{
+                        getFullName(){
+                            return this.firstName+" "+this.lastName;
+                        }
+                    }
+                });
+            </script>
+        * 计算属性的复杂操作
+            <div id="app">
+                <span>{{allPrice}}</span><br>
+            </div>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        books:[
+                            {bookName:'大主宰',price:20},
+                            {bookName:'斗破苍穹',price:30},
+                            {bookName:'莽荒纪',price:50},
+                            {bookName:'星辰变',price:20},
+                            {bookName:'完美世界',price:30}
+                        ]
+                    },
+                    computed:{
+                        allPrice:function () {
+                            let book = this.books.reduce(function (a, b) {
+                                a.price+=b.price;
+                                return a;
+                            });
+                            return book.price;
+                        }
+                    },
+                });
+            </script>
+        * 计算属性setter和getter
+            我们回顾下计算属性的基础使用，为什么fullName明明是个函数的形式定义，却在使用的时候当做属性的方式使用
+            其实计算属性本身是个对象，这个对象有set方法和get方法，而我们定义的方法是简写的get方法，set方法被我们省略掉了，一般很少使用
+            完整版的计算属性是下面这种形式：
+                <div id="app">
+                    <span>{{fullName}}</span><br>   <!--计算属性是不需要使用fullName()方式调用-->
+                </div>
+                <script>
+                    let app = new Vue({
+                        el: '#app',
+                        data: {
+                            firstName:'万',
+                            lastName:'一'
+                        },
+                        computed:{
+                            fullName:{
+                                set:function (newValue) {
+                                    let names = newValue.split(" ");
+                                    this.firstName=names[0];
+                                    this.lastName=names[1];
+                                },
+                                get:function () {
+                                    return this.firstName+" "+this.lastName;
+                                }
+                            }
+                        }
+                    });
+                </script>
+            因为我们大多时候并不使用set方式，所以使用省略的方式写计算属性，以下是省略版本，省略了set方法，并简写get方法
+                fullName:function () {
+                    return this.firstName+" "+this.lastName;
+                }
+        * 计算属性computed与方法methods有什么区别？
+            原因：计算属性会进行缓存，如果多次使用时，计算属性只会调用一次，而函数多次执行，就会多次调用函数
+            另外，计算属性在vue内部中确实是一个属性，而我们编写的函数其实是重写了这个属性的get方法。
+
+    ES6补充
+        * var和let
+            var没有块级作用域，let有块级作用域，var的生命周期是定义它的函数内部，let的生命周期是定义它的语句块中。
+            下面是关于作用域的问题：
+                <button>按钮0</button>
+                <button>按钮1</button>
+                <button>按钮2</button>
+                <button>按钮3</button>
+                <button>按钮4</button>
+                <script>
+                    let buttons = document.getElementsByTagName('button');
+                    for (var i = 0; i < buttons.length; i++) {
+                        buttons[i].addEventListener('click',function () {
+                            console.log("你点击了第"+i+"个按钮");
+                        });
+                    }
+                </script>
+            上面代码，我们给5个按钮定义5个点击事件，点击不同的按钮，按理说应该输出0,1,2,3,4
+            但是实际运行发现，输出的是5,5,5,5,5，出现的原因就是变量的作用域问题，循环内部输出的i，引用的是最外层的i
+            我们添加的5个事件，就会产生5个函数，而这些函数中的i引用的都是最外层的var i = 0，所以导致循环结束后，i变成5
+            然后当我们触发点击事件后，所有事件函数都是输出5，问题就是5个事件函数中的i没有自己的变量作用域，都是引用相同的i
+            如何解决这个问题呢？可以使用匿名立即执行函数又叫自动执行函数又叫小闭包，请看下面这个例子：
+                for (var i = 0; i < buttons.length; i++) {
+                    (function (num) {
+                        buttons[i].addEventListener('click',function () {
+                            console.log("你点击了第"+num+"个按钮");
+                        });
+                    })(i);
+                }
+            将for循环内部修改成以上这种形式即可解决，for循环内部产生了5个匿名函数并立即执行，可以看到，5个事件函数中的num引用的都是
+            自己的匿名函数中的num参数，而这个num是循环的时候值复制过去的，所以这个匿名函数中的num参数不会随着i的改变而改变，
+            使得匿名函数内部的事件函数的num也就不会改变。当然以上的解决方式是ES5的解决方式，ES6中，直接使用let关键字定义函数即可
+                for (let i = 0; i < buttons.length; i++) {
+                    buttons[i].addEventListener('click',function () {
+                        console.log("你点击了第"+i+"个按钮");
+                    });
+                }
+            let关键字是有自己的作用域的，每个事件函数都是使用自己作用域内的i，并不会共用同一个let i = 0;
+        * const的使用
+            众所周知，const是定义常量的关键字，常量的含义是指向的对象不能修改，但是可以改变对象内部的属性
+            值得注意的是，const修饰的标识符必须立即被赋值，const NAME; //这种只声明不初始化的方式是错误的
+        * ES6中的增强写法，与es5在写法方面的改变
+            - 属性的增强写法
+                es5中属性写法
+                    <script>
+                        const name = '万一爱明月';
+                        const age = 23;
+                        const obj= {
+                            name:name,
+                            age:age
+                        }
+                        console.log(obj);
+                    </script>
+                es6中属性增强写法，解构赋值
+                    <script>
+                        const name = '万一爱明月';
+                        const age = 23;
+                        const obj= {
+                            name,
+                            age
+                        }
+                        console.log(obj);
+                    </script>
+            - 方法的增强写法
+                es5中方法写法
+                     <script>
+                        const obj= {
+                            say:function () {
+
+                            },
+                            run:function () {
+
+                            }
+                        }
+                    </script>
+                es6中增强方法写法
+                    <script>
+                        const obj= {
+                            say(){
+                                console.log("hello!")
+                            },
+                            run(){
+                                console.log("Go b Go b")
+                            }
+                        }
+                        obj.say();
+                        obj.run();
+                    </script>
+
+    事件监听
+        v-on指令，为BOM元素绑定事件函数，可以使用语法糖写成@
+        * v-on参数
+            - 如果事件函数不需要额外的参数，则DOM中@click="函数名"不需要添加()
+                <div id="app">
+                    <button @click="ceshi">{{num}}</button>
+                </div>
+                <script>
+                    let app = new Vue({
+                        el: '#app',
+                        data: {
+                            num:0
+                        },
+                        methods:{
+                            ceshi(){
+                                this.num++;
+                            }
+                        }
+                    });
+                </script>
+            - 当然我们也可以给事件函数一个参数，当点击时，传递一个参数到事件函数中
+                <button @click="ceshi(50)">{{num}}</button>
+                methods:{
+                    ceshi(param){
+                        this.num=param;
+                    }
+                }
+            - 值得注意的是，如果你的事件函数有参数接收，但是DOM元素中写成@click="ceshi"，并没有指定参数，甚至没有括号
+                vue还是会传递一个对象到事件函数参数中，事件函数会接收一个event对象，这个对象是浏览器生成的,
+                如果想传入event事件对象进事件函数，则Dom元素中要么只写事件函数名(就是上面所说的)，要么使用$event传递参数
+            - 最后，如果需要我们的事件函数同时需要某个参数和event对象，那么传递参数的时候应该使用$event传递参数，
+                如果参数直接使用event传递，则vue会以为该event参数是变量，就去data对象中找对应的属性，最后报错找不到，
+                <button @click="ceshi('万①',$event)">{{num}}</button>
+                methods:{
+                    ceshi(param1,event){
+                        console.log(param1+" "+event);
+                    }
+                }
+        * v-on的修饰符
+            修饰符指的是在v-on指令的基础上加上一些命令，使得可以改变事件的触发规则
+            例如：
+                @click.stop，解决事件冒泡的问题
+                @click.prevent，移除默认的事件，例如表单提交，点击submit按钮时会自动提交，
+                    现在我手动为该按钮绑定事件函数，等我检查完毕，我再提交，不需要这个按钮默认的事件提交了，
+                    使用v-on.prevent="事件函数名"，表示移除该DOM元素默认的事件，转而执行我绑定的事件函数。
+                @click.enter，监听键盘的确认键，也可以@click.键盘上键帽对应的编码/别名，来监听某个键
+                @click.native，监听组件根元素的原生事件
+                @click.once，只触发一次回调,只能点击一次才有用，
+                值得说明的是，并不是只有点击事件才有修饰符，所有事件可以使用修饰符，另外，修饰符可以多个连用，@click.stop.prevent="xxx"
+    条件判断
+        使用v-if，v-else-if，v-else，v-show
+        v-if="true",显示DOM元素，反之不显示
+        小案例：
+            <div id="app">
+                <h3 v-if="score>=90">优秀</h3>
+                <h3 v-else-if="score>=70">挺好</h3>
+                <h3 v-else-if="score>=60">平庸</h3>
+                <h3 v-else="score<60">不行哦</h3>
+            </div>
+            data: {
+                score:95
+            }
+            不过这种计算方式不太好，可以使用计算属性代替。
+        对了，在使用v-if等条件判断指令时，可能会出现控件复用问题，因为vue底层处于性能考虑，会尽量复用之前存在的控件
+        复用控件可能使得类型为text的input控件使用了别人的值，所以如果想让vue不复用控件，就需要在控件上加上key属性，并填写不同的key属性值。
+        最后，还有一个与v-if类似的指令，v-show，它与v-if的区别是，如果判断为false，v-if中根本不会有DOM元素，
+        而v-show则只是将DOM元素的display属性设置为none而已，浏览器页面按f12，还是可以看到DOM元素的。
+    循环遍历
+        v-for指令用于遍历数组和对象，遍历数组很简单，不仅可以拿到数组的元素，还可以拿到数组的下标/索引
+            <li v-for="(item,index) in books">{{index}} {{item}}</li>
+            data: {
+                books:[
+                    '大主宰',
+                    '斗破苍穹',
+                    '莽荒纪',
+                    '星辰变',
+                    '完美世界'
+                ]
+            }
+        如果遍历的是对象，则也可以获取到对象的key和value
+            <li v-for="(value,key) in book">{{key}} {{value}}</li>
+            data: {
+                book: {
+                    bookName:'大主宰',price:20
+                }
+            }
+        注意：括号内中第一个参数永远是数组元素或者对象value，第二个参数永远是数组下标或者对象的key，跟参数名没关系
+            当然了，如果遍历的是对象，还可以有第三个参数，是对象的下标，第一个属性的下标是0，以此类推，不过对象下标很少使用
+        最后，vue官方建议，在使用v-for时，推荐在DOM元素中绑定一个key元素,绑定key元素可以提高DOM渲染效率，涉及到虚拟DOM
+            并且这个key属性值必须是唯一的，并且不能是数组下标或元素下标，最好是数组元素值或者对象value，
+            下面来解释一下原因：
+                就拿上面遍历数组的例子来看，为什么需要绑定key属性，如果没有绑定key底层是怎么操作的？
+                * 首先如果我们没有绑定key，则输出如下
+                    0 大主宰
+                    1 斗破苍穹
+                    2 莽荒纪
+                    3 星辰变
+                    4 完美世界
+                如果此时我们想插入一个DOM元素在"斗破苍穹"和"莽荒纪"之间，我们输入app.books.splice(2,0,'武动乾坤')，结果正常显示出来
+                    0 大主宰
+                    1 斗破苍穹
+                    2 武动乾坤
+                    3 莽荒纪
+                    4 星辰变
+                    5 完美世界
+                但是底层是如何操作的呢？实际上是将"莽荒纪"DOM元素的值改成"武动乾坤"，然后将"星辰变"改成"莽荒纪"，依次改下去，最后生成新的DOM元素
+                它的值为"完美世界"，和java数组中间新增一个元素，其后所有元素往后推一位一样，这样做的效率非常的低，我们想要的是，直接新增一个DOM元素
+                插入到"斗破苍穹"和"莽荒纪"之间，不需要改变其他DOM元素的位置，就和java中链表一样，这个时候就需要为这些DOM元素绑定一个唯一的key
+                这个key不能是数组的索引，因为索引是会变的，如果你的属性key是索引，那插入新增DOM元素后，其后DOM元素的索引值就会发生改变，
+                触发vue的diff算法后，也会更新后面的DOM元素，所以属性key值要为数组元素值(元素要唯一)，使得每一个key于自身DOM元素绑定，
+                才能实现和链表一样的效果。key的作用主要是为了高效更新虚拟BOM
+    数组响应问题
+        我们知道，通过修改data中的数据就可以使得界面中元素数据实时发生改变，这被称为响应式，但并不是所以方法都能够使得DOM元素及时更新
+        也就是说并不是一定修改data数据，DOM元素就能立即响应更改，有些方法是响应式的，有些方法并不是响应式的
+        响应式的数组方法：
+            push()，pop()，shift()，unshift()，splice()，sort()，reverse()
+        如果通过下标直接修改方法，则这种方式并不是响应式的，也就是说DOM元素并不立即发生改变，虽然实际上数据已经被改变了
+        当然目前我这个v2.6.14版本的vue不行，其他新版本的不清楚。
+            <li v-for="(value,key) in books">{{key}} {{value}}</li>
+            <li><button @click="update">点击修改</button></li>
+            methods:{
+                update(){
+                    this.books[0]='武动乾坤';
+                    console.log(this.books);
+                }
+            }
+        上面这种方式修改数组元素，数据确实被修改了，但是DOM元素并没有实时更新，如果想实时更新，使用上面的方法去更新数组的元素
+        另外vue也提供了方法去实时更新数据：vue.set(要修改的对象，索引值，修改后的值)，或者this.$set(要修改的对象，索引值，修改后的值)
+            Vue.set(this.books,0,'武动乾坤');
+            this.$set(this.books,0,'武动乾坤');
+    阶段案例
+        实现购物车案例
+            <div id="app">
+                <div v-if="books.length">
+                    <table>
+                        <thead>
+                        <th>书籍名称</th>
+                        <th>出版日期</th>
+                        <th>价格</th>
+                        <th>购买数量</th>
+                        <th>操作</th>
+                        </thead>
+                        <tbody>
+                        <tr v-for="(book,index) in books">
+                            <td>{{book.name}}</td>
+                            <td>{{book.time}}</td>
+                            <td>{{book.price | showPrice}}</td>
+                            <td>
+                                <button @click="sub(index)" :disabled="book.count<=1">-</button>
+                                {{book.count}}
+                                <button @click="add(index)">+</button>
+                            </td>
+                            <td><button @click="remove(index)">移除</button></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <span>总价{{allPrice}}</span>
+                </div>
+                <div v-else>购物车为空</div>
+            </div>
+
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        books:[
+                            {name:'大主宰',price:20.00,count:1,time: '1998-8'},
+                            {name:'斗破苍穹',price:30.00,count:1,time: '1998-8'},
+                            {name:'莽荒纪',price:50.00,count:1,time: '1998-8'},
+                            {name:'星辰变',price:20.00,count:1,time: '1998-8'},
+                            {name:'完美世界',price:30.00,count:1,time: '1998-8'},
+                        ],
+                    },
+                    computed:{
+                        allPrice(){
+                            //页面解析可能是先解析计算属性，然后再渲染数据
+                            let sum=0;
+                            this.books.map(function(value) {
+                                sum+=(value.price*value.count);
+                            });
+                            return sum;
+                        }
+                    },
+                    filters:{       //设置过滤器
+                        showPrice(price){
+                            return '$'+price.toFixed(2);    //保留两位小数
+                        }
+                    },
+                    methods:{
+                        remove(index){
+                            //方式1
+                            /*let newBooks = this.books.filter(function(book,index2) {
+                                return !(index===index2);
+                            });
+                            this.books=newBooks;*/
+                            //方式2
+                            this.books.splice(index,1);
+                        },
+                        add(index){
+                            this.books[index].count++;
+                        },
+                        sub(index){
+                            this.books[index].count--;
+
+                        }
+                    },
+                });
+            </script>
+    v-model
+        * v-model使用
+            用于绑定控件，被绑定的控件与data中的数据实现双向绑定，准确的说，被绑定控件的value值和data中的数据实现双向绑定，
+            当我们修改控件的值时，data中的数据也会被修改，这是v-bind实现不了的，v-bind绑定value值只是将data中的数据取出来显示，
+            当我们修改控件的value值时，data中数据并不会被更改，而v-model却可以。
+            小案例：
+                <input type="text" v-model="message">
+                data: {
+                    message:'加油!',
+                }
+                当我们手动修改文本框中的数据时，data中数据也会被更改，而v-bind绑定控件的value可做不到这一点，这就是双向绑定
+        * v-model原理
+            实际上v-model可以通过v-bind绑定value属性加上事件监听可以实现，当每次修改控件文本框时，会触发input事件(input控件有input事件)
+            然后执行我们的事件函数，最后将输入的值写到data数据中。下面就是模拟v-model
+            <input type="text" :value="message" @input="changeValue">
+            data: {
+                message:'加油!',
+            },
+            methods:{
+                changeValue(event){
+                    this.message=event.target.value;
+                }
+            }
+            或者input事件并不执行事件函数，直接使用表达式即可：
+            <input type="text" :value="message" @input="message=$event.target.value">
+        * v-model在radio中的使用，单选框
+            <div id="app">
+                <label>
+                    <input type="radio" name="sex" id="male" value="男" v-model="sex">男
+                </label>
+                <laber>
+                    <input type="radio" name="sex" id="female" value="女" v-model="sex">女
+                </laber>
+            </div>
+            data: {
+                sex:'男'    //默认男
+            }
+            小提示，当使用v-model在单选框时，name的属性可以去掉，name的本意是将两个选项绑定在一起，
+            而v-model的值相同，已经表示为这两个控件被绑定在一起。
+        * v-model在checkbox中的使用
+            checkbox分为单选框和多选框，单选框表示要么选中，要么不选择，多选框则是同时选中多个
+            - 单选框
+                <label for="agree">
+                    <input type="checkbox" id="agree" v-model="isAgree">同意协议
+                </label>
+                data: {
+                    isAgree: false
+                }
+            - 多选框
+                <input type="checkbox" value="篮球" v-model="hobbies">篮球
+                <input type="checkbox" value="足球" v-model="hobbies">足球
+                <input type="checkbox" value="兵乓球" v-model="hobbies">兵乓球
+                <input type="checkbox" value="羽毛球" v-model="hobbies">羽毛球
+                data: {
+                    hobbies: []
+                }
+            v-model有多个值时，使用数组进行接收
+        * v-model在select中的使用
+            select也有单选和多选之分
+            - 单选
+                <select v-model="fruit">
+                    <option value="芒果">芒果</option>
+                    <option value="火龙果">火龙果</option>
+                    <option value="草莓">草莓</option>
+                    <option value="葡萄">葡萄</option>
+                </select>
+                data: {
+                    fruit:'草莓'
+                }
+            - 多选
+                只需要在select上加上multiple属性即可
+                <select v-model="fruit" multiple>
+        * 上面例子使用checkbox出现的问题
+            上面v-model使用在checkbox的问题是，我们的input写死在页面中，实际上应该动态的
+            <div id="app">
+               <label v-for="ball in originHobbies" >
+                   <input type="checkbox" :value="ball" v-model="hobbies">{{ball}}
+               </label>
+                {{hobbies}}
+            </div>
+            data: {
+                hobbies:[],
+                originHobbies:['篮球','足球','羽毛球','兵乓球']
+            }
+        * v-model的修饰符
+            之前讲过事件有它的修饰符，而v-model也有自己的修饰符，修饰符主要是用来帮助我们处理一些数据的，类似语法糖的概念
+            lazy修饰符
+                默认情况下，v-model默认是在input事件中同步输入框的数据的，也就是说，一旦有数据发生改变，对应的data数据就会自动发生改变
+                lazy修饰符可以让数据在失去焦点或者回车时才会更新
+                <input type="text" v-model.lazy="message">
+            number修饰符
+                默认情况下，在输入框中无论我们输入的是字母还是数字，都会被当做字符串进行处理，
+                但是如果我们希望处理的是数字类型，那么最好将内容直接当做数字进行处理
+                number修饰符可以让在输入框输入的内容自动转成数字类型
+                <input type="number" v-model.number="message">
+                该文本框只能输入数字，并且绑定在data数据中时，message类型也为数字，如果没有number修饰符，则message会是字符串类型
+            trim修饰符
+                如果输入的内容首尾有很多空格通常我们希望将其去除
+                trim修饰符可以过滤内容左右两边的空格
+                <input type="text" v-model.trim="message">
+                绑定到data数据时，去除用户输入的两边的空格
+
+组件化开发
+    组件化指的是将整个页面拆分成一个个组件，形成类似一个树的结构，整个页面相当于树的根
+    * 组件的使用步骤
+        1)创建组件
+        2)注册组件
+        3)使用组件
+        案例：
+            <div id="app">
+                <mycon></mycon>
+            </div>
+            <script>
+                //创建组件构造器，方式1
+                let mycon = Vue.extend({
+                    template:`
+                        <div>
+                            <h3>万一爱明月</h3>
+                        </div>
+                    `
+                });
+                //注册组件
+                Vue.component('mycon',mycon);
+                //创建组件构造器并注册主键，方式2
+                /*Vue.component("mycon",{
+                    template:`
+                        <div>
+                            <h3>万二爱明月</h3>
+                        </div>
+                    `
+                });*/
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message:'加油!'
+                    },
+                });
+            </script>
+        注意：
+            其一，组件创建和注册必须在定义vue实例之前(全局组件)，使用的时候，组件标签必须在vue实例管理标签的内部使用，
+            其二，注册组件时的组件名，除第一个字母可以大写之外，其他必须为小写
+            其三，定义的模板中，必须使用div包裹
+    * 全局组件和局部组件
+        注册组件分为全局组件和局部组件，全局组件指的是创建的组件可以在多个vue实例中使用，而局部组件只能在指定的vue实例中使用
+        上面的例子注册的组件就是全局组件，如果想注册局部组件需要在vue实例中定义。
+        即，将Vue.component('mycon',mycon);
+        替换成
+            let app = new Vue({
+                el: '#app',
+                data: {
+                    message:'加油!'
+                },
+                components: {
+                    //wanyi是组件标签名，mycon是创建的组件构造器
+                    wanyi: mycon
+                }
+            });
+        之后在vue实例管理的div中使用：<wanyi></wanyi>即可。
+    * 父子组件
+        父子组件指的是，两个组件可以设置成父子关系，自组件在父组件中注册，并且只能在父组件中使用，
+        最后父组件在vue实例中注册，在vue实例管理的div中使用父组件，可以把vue实例看做root根组件，在它下面注册组件都是它的子组件
+        案例：
+            <div id="app">
+                <mycon2></mycon2>
+            </div>
+            <script>
+                //组件1，子组件
+                let mycon1 = Vue.extend({
+                    template:`
+                        <div>
+                            <h3>万一爱明月</h3>
+                        </div>`
+
+                });
+                //组件2，父组件
+                let mycon2 = Vue.extend({
+                    template:`
+                        <div>
+                            <h3>万二爱明月</h3>
+                            <mycon1></mycon1>
+                        </div>`,
+                    components:{
+                        mycon1:mycon1
+                    }
+                });
+                //vue实例，根组件
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message:'加油!'
+                    },
+                    components: {
+                        mycon2:mycon2
+                    }
+                });
+            </script>
+    * 组件的语法糖，开发中常使用语法糖的方式，而不是使用Vue.extend的方式创建组件
+        其实最开始的例子中第二种创建组件构造器的方式就是语法糖的方式，同时这种方式创建的是全局组件，下面是使用语法糖创建局部组件
+        - 全局组件语法糖(包含了一个局部组件语法糖)
+            Vue.component('wanyi',{
+                template:`
+                    <div>
+                        <h3>万一爱明月</h3>
+                        <mycon1></mycon1>
+                    </div>`,
+                components:{
+                    mycon1: {
+                        template:`
+                            <div>
+                                <h3>万二爱明月</h3>
+                                <mycon1></mycon1>
+                            </div>`,
+                    }
+                }
+            });
+        - 局部组件语法糖
+            let app = new Vue({
+                el: '#app',
+                data: {
+                    message:'加油!'
+                },
+                components: {
+                    waner: {
+                        template:`
+                            <div>
+                                <h3>万二爱明月</h3>
+                            </div>`,
+                    }
+                }
+            });
+    * 组件模板分离方法
+        上面组件中的模板中都是html代码，在js中写html代码显然不太好看，下面就是两种抽离模板中的html代码的方式
+        - script标签方式，类型为text/x-template
+            <div id="app">
+                //使用组件
+                <wanyi></wanyi>
+            </div>
+            //抽离出模板
+            <script type="text/x-template" id="wanyi">
+                <div>
+                    <h3>万一爱明月</h3>
+                    <mycon1></mycon1>
+                </div>
+            </script>
+            //创建组件，通过id，关联组件和script标签
+            Vue.component('wanyi',{
+                template:"#wanyi",
+                components:{
+                    mycon1: {
+                        template:`
+                            <div>
+                                <h3>万二爱明月</h3>
+                                <mycon1></mycon1>
+                            </div>`,
+                    }
+                }
+            });
+        - template标签的方式
+            <template id="wanyi">
+                <div>
+                    <h3>万一爱明月</h3>
+                    <mycon1></mycon1>
+                </div>
+            </template>
+    * 组件中的数据存放问题，以及为什么组件中的data是一个函数
+        组件的数据存放问题就是如何在模板html代码中使用Mustache语法，即，组件如何动态获取数据，我们的vue实例可以看做一个root根组件
+        在vue实例中，data属性是一个对象，可以在页面获取data中的数据，但是在组件中，data属性是一个函数，这个函数返回一个对象，
+        在该对象中定义属性，我们的组件模板中才可以使用动态的值。组件模板中是无法直接获取vue实例中的数据的。
+        案例：
+            <div id="app">
+                <wanyi></wanyi>
+            </div>
+            <template id="wanyi">
+                <div>
+                    <h3>万一爱{{name}}</h3>
+                </div>
+            </template>
+            <script>
+                Vue.component('wanyi',{
+                    template:"#wanyi",
+                    //组件中的data是个函数
+                    data(){
+                      //在该函数返回值(一个对象)中定义属性，才能在组件模板中使用变量
+                      return{
+                          name: "杨明月"
+                      }
+                    },
+                    components:{
+                    }
+                });
+
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message:'加油!'
+                    },
+                    components: {
+                    }
+                });
+            </script>
+        重点来啦，看完上面的代码，想想为什么vue实例中data是一个对象，而组件中的data却是一个函数，在函数中返回一个对象呢？
+        因为我们创建组件的时候，可能会创建多个组件，多个组件复用，到时候如果组件的data是一个对象，则所有组件共用一个对象
+        就会发生数据紊乱，而通过data函数创建的对象，每次调用data函数的时候都会创建一个新的对象，使得每个组件实例都有自己的data数据
+        就不会发生数据紊乱。
+    * 如何进行父子组件的通信
+        - 通过props向子组件传递数据
+            在子组件中，使用选项props来声明需要从父级接收到的数据。props的值有两种方式：
+            方式一：字符串数据，数组中的字符串就是传递时的名称
+            方式二：对象，对象可以设置传递时的类型，也可以设置默认值等。
+            案例1：使用方式一，字符串数组的形式进行父向子通信，props类型可以是字符串数组类型
+                <div id="app">
+                    <wanyi :wo="me" :ni="you"></wanyi>
+                </div>
+                <template id="yue">
+                    <div>
+                        {{wo}}爱{{ni}}
+                    </div>
+                </template>
+                <script>
+                    const wanyi = {
+                        template:"#yue",
+                        props:['wo','ni'],
+                        data(){
+                            return {};
+                        }
+                    }
+                    let app = new Vue({
+                        el: '#app',
+                        data: {
+                            me:'万一',
+                            you:'明月'
+                        },
+                        components: {
+                            wanyi
+                        }
+                    });
+                </script>
+            案例2:使用方式二，使用对象类型进行父向子通信
+                props:{
+                        // wo:String
+                        wo:{
+                            //表示变量的类型
+                            type: String,
+                            default: "我",
+                            //表示该变量是否必须传入
+                            required: true
+                        },
+                        ni:{
+                            type: String,
+                            default: "明月",
+                            required: true
+                        },
+                        shuiguo:{
+                            type: Array,
+                            //如果传递的是数组或者对象，default属性必须是一个函数
+                            default(){
+                                return ['我',"喜欢",'的','人']
+                            },
+                        }
+                    }
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        me:'万一',
+                        you:'明月',
+                        fruit:['苹果','香蕉','橘子','桃子']
+                    },
+                    components: {
+                        wanyi
+                    }
+                });
+                这里的props可以是一个对象，对象的属性就是子组件中定义的变量，对应着方式一的字符串数组中的字符串元素，也是子组件中的变量
+                方式二中，定义属性有两种方式，一种是直接"wo:String"的方式，属性值指的是变量的类型，变量的属性值也可以是一个对象
+                对象中可以有type，default，require属性,分别表示变量的类型，变量的默认值(如果父组件没传递的话),该变量是否必须传入
+                当传递的属性是数组类型或者对象类型时，该变量的变量值(见shuiguo变量，就是一个对象)中的default属性必须是函数类型，
+                并在函数中返回的对应的默认值。
+                注意：在编写props时，该对象的属性，也就是子组件的变量，全部都应该是小写，即子组件的变量名全部应该小写，
+                因为html标签(DOM元素)解析不了驼峰表示法，全都会转换成小写，所以当子组件变量名是驼峰表示法时会出错。
+                如果一定要子组件变量名是驼峰表示法(即有大写字母),则需要在DOM标签绑定属性时将大写字母变成小写字母并加上-分隔
+                例如：
+                    <wanyi :shui-guo="fruit"></wanyi>
+                    这样做，子组件中的变量名就为shuiGuo
+        - 通过自定义事件子组件向父组件发送数据
+            1)在子组件中，通过$emit()来触发事件
+            2)在父组件中，通过v-on来监听子组件事件
+            案例如下：
+                //这个vue管理的div也可以看做是根组件的模板template
+                <div id="app">
+                    <!--
+                        以前如果是@click事件，不传参数的话，会默认传一个event对象
+                        现在子组件发射一个自定义事件，此时监听该事件不传参数，会默认将发射时带的参数传递给父组件中。
+                    -->
+                    <wanyi @get-count="getCount"></wanyi>
+                </div>
+                //子组件的模板
+                <template id="yue">
+                    <div>
+                        <!--遍历子组件中的数据，并监听点击事件-->
+                        <h3 v-for="item in fruit" @click="getClick(item)">{{item}}</h3>
+                    </div>
+                </template>
+                <script>
+                    //创建子组件
+                    const wanyi = {
+                        template:"#yue",
+                        //子组件中的data必须是一个函数，在函数返回的对象中定义组件的变量
+                        data(){
+                            return {
+                                count:0,
+                                fruit:['苹果','香蕉','橘子','桃子']
+                            }
+                        },
+                        methods:{
+                            getClick(item){
+                                console.log(item);
+                                this.count++;
+                                //自定义事件的名字，自定义事件的参数，该参数会传递到父组件的方法参数中
+                                //这里写驼峰在脚手架(vue-cli)中可以使用，这里使用vue原生的东西，所以不能有大写。
+                                this.$emit("get-count",this.count);
+                            }
+                        }
+                    }
+                    //父组件
+                    let app = new Vue({
+                        el: '#app',
+                        data: {
+                            message:'加油!'
+                        },
+                        //注册子组件，ES6增强属性的方式
+                        components:{
+                            wanyi
+                        },
+                        methods: {
+                            //当触发子组件的事件后，执行父组件中的方法
+                            getCount(count){
+                                console.log("被点击："+count+"次");
+                            }
+                        }
+                    });
+                </script>
+    * 父子组件通信结合双向绑定
+        这里主要说的是，在父子组件通信时，子组件最好不要修改props中的变量(属性)，即v-model不能绑定props中的值
+        而是绑定data中的变量，我们可以将props中的值赋值给data中的变量，props的值始终只能是父组件进行修改的。
+        下面是一个简单的案例，同时有父向子，子向父通信
+        <div id="app">
+            <wanyi :cnum1="num1" :cnum2="num2" @change-num1="changeNum1" @change-num2="changeNum2"></wanyi>
+        </div>
+
+        <template id="yue">
+            <div>
+                props:{{cnum1}}
+                data:{{number1}}
+                <input type="text" :value="number1" @input="change1"><br>
+                props:{{cnum2}}
+                data:{{number2}}
+                <!--<input type="text" v-model="number2">-->    //这里不使用v-model双向绑定是因为需要执行其他任务。所以代替了
+                <input type="text" :value="number2" @input="change2"><br>
+            </div>
+        </template>
+
+        <script>
+          let app = new Vue({
+            el: '#app',
+            data: {
+              num1:1,
+              num2:2
+            },
+            methods: {
+              changeNum1(num1){
+                //子组件向父组件传递值时，数据是字符串，需要转成整数类型
+                this.num1=num1+0;
+              },
+              changeNum2(num2){
+                //子组件向父组件传递值时，数据是字符串，需要转成整数类型
+                this.num2=num2+0;
+              }
+            },
+            components:{
+              wanyi:{
+                template:"#yue",
+                data(){
+                  return {
+                    number1:this.cnum1,
+                    number2:this.cnum2
+                  }
+                },
+                props:{
+                  cnum1:{
+                    type:Number,
+                  },
+                  cnum2:Number
+                },
+                methods:{
+                  change1(event){
+                    this.number1=event.target.value;
+                    this.number2=this.number1*100;
+                    this.$emit('change-num1',this.number1);
+                    this.$emit('change-num2',this.number2);
+                  },
+                  change2(event){
+                    this.number2=event.target.value;
+                    this.number1=this.number2/100
+                    this.$emit('change-num2',this.number2);
+                    this.$emit('change-num1',this.number1);
+                  }
+                }
+              }
+            }
+          });
+        </script>
+        上面的例子中，我们使用<input type="text" :value="number2" @input="change2">代替了<input type="text" v-model="number2">
+        是因为我们不仅需要双向绑定更改number2的值，还需要相应的修改number1的值，所以在事件函数中修改number1的值，
+        你还可以使用v-model和watch属性的方式做到上面的效果，当v-model绑定的值发生改变的时候，watch属性中的函数会发生回调，
+        可以在该函数中修改numebr1的值,也就是说不监听input事件了。例如下面的更改：
+            //使用v-model和watch同样能做到当绑定的变量发生改变的时候，也能更改其他变量的值并且向父组件通信。
+            //watch中监听的就是data数据中的变量，变量名为函数，当变量发生修改后，执行该函数。
+            <input type="text" v-model="number2">
+            watch:{
+                number1(newValue,oldValue){
+                    this.number2=newValue*100;
+                    this.$emit('change-num1',this.number1);
+                    this.$emit('change-num2',this.number2);
+                },
+                number2(newValue,oldValue){
+                    this.number1=newValue/100;
+                    this.$emit('change-num2',this.number2);
+                    this.$emit('change-num1',this.number1);
+                }
+            }
+    * 父子组件之间的访问
+        之前说的是父子组件之间的通信，指的是，父子组件相互获取对方的属性值，而父子组件之间的访问指的是，拿到对方的对象，使用对象的属性和方法
+        网课定义：有时候我们需要父组件直接访问子组件，子组件直接访问父组件，或者是子组件直接访问根组件
+        - 父组件访问子组件：使用$children或$refs
+            $children与$refs不同的是，$children获取的是全部的子组件，是一个数组，数组的元素是该组件下的所有子组件
+            所以取出某个子组件需要遍历，一般很少用，当需要全部的子组件的时候才会使用$children，而$refs可以指定获取某个子组件
+            只需要在子组件标签上使用ref属性标记该子组件，就可以在父组件中获取到该子组件，你也可以标记多个子组件，
+            到时候this.$refs是一个对象，对象的属性是子组件标签的ref属性，通过this.$refs.ref属性.子组件属性/子组件方法，即可。
+            $refs不仅可以获取子组件，也可以获取普通标签，只需要在标签上写上ref属性，操作方式同上
+            案例：
+                <div id="app">
+                    <wanyi ref="yueyue"></wanyi>    //加上ref属性，则该子组件会被加到$refs对象之中
+                    <button @click="getChild">点击获取</button>
+                </div>
+                <template id="yue">
+                    <div></div>
+                </template>
+                <script>
+                    let app = new Vue({
+                        el: '#app',
+                        data: {
+                            message:'加油!'
+                        },
+                        methods:{
+                            getChild(){
+                                console.log(this.$children);    //[VueComponent],该对象是数组，数组中的元素就是子组件对象
+                                console.log(this.$children[0].name);
+                                console.log(this.$refs);        //{yueyue: VueComponent}，它是一个对象，子组件对象以属性的方式存储在该对象中
+                                console.log(this.$refs.yueyue.name);
+                                this.$refs.yueyue.show()
+                            }
+                        },
+                        components:{
+                            wanyi:{
+                                template: '#yue',
+                                data(){
+                                    return{
+                                        name: '子组件'
+                                    }
+                                },
+                                methods:{
+                                    show(){
+                                        console.log("子组件中的方法");
+                                    }
+                                }
+                            }
+                        }
+                    });
+                </script>
+        - 子组件访问父组件：使用$parent，以及$root
+            this.$parent访问父组件实例，不常用，this.$root访问根组件实例，也就是vue中的属性和方法
+            用法和上面的差不多，就不举例子了。
+组件化高级
+    * 组件的插槽slot基本使用
+        组件的插槽是为了让我们封装的组件更加具有扩展性，让使用者可以决定组件内部的一些内容到底展示什么
+        简单案例如下：
+            <div id="app">
+                <!--向插槽中添加万二标签，会替换模板中的slot标签，当插入多个标签时，同样会全部替换-->
+                <wanyi><h3>万二</h3></wanyi>
+                <!--如果没有插入标签，不会显示slot标签，所以slot插槽很形象，预留给使用者一个接口-->
+                <wanyi></wanyi>
+            </div>
+            <template id="yue">
+                <div>
+                    <h3>万一</h3>
+                    <!--预留的插槽，使用者可以使用自己的定制的东西，插槽还可以使用默认值，即在slot标签中配置默认值标签-->
+                    <!--配置好默认值后，如果使用者没有定制化插槽，则会使用插槽中的默认值显示出来-->
+                    <slot></slot>
+                </div>
+            </template>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        message:'加油!'
+                    },
+                    components:{
+                        wanyi:{
+                            template: '#yue',
+                        }
+                    }
+                });
+            </script>
+    * 具名插槽
+        指的是当模板中存在多个插槽的时候，需要给插槽取个名字，这样使用者在替换插槽的时候，就能替换指定的插槽
+        案例：
+            <div id="app">
+                <wanyi><button slot="left">返回</button></wanyi>
+            </div>
+            <template id="yue">
+                <div>
+                    <h3>万一</h3>
+                    <slot name="left">左边</slot>
+                    <slot name="center">中间</slot>
+                    <slot name="right">右边</slot>
+                </div>
+            </template>
+        使用的时候，使用slot指定覆盖(替换)哪一个插槽，如果没有指定slot名称，则只会替换没有名称的插槽。
+    * 作用域插槽
+        作用域又称编译作用域，指的是，组件中的变量只会在自己的模板中有效
+        例如，在父子组件中存在同名变量，在使用该变量时，如果使用在父模板中，则使用的变量是父组件中的变量，
+            如果使用在子模板中，则使用的变量是子组件中的变量
+            <div id="app">
+                <wanyi v-show="isShow"></wanyi>
+            </div>
+            <template id="yue">
+                <div>
+                    <h3>万一</h3>
+                </div>
+            </template>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                        isShow: true,
+                        message:'加油!'
+                    },
+                    components:{
+                        wanyi:{
+                            template: '#yue',
+                            data(){
+                                return {
+                                    isShow: false
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
+        上面这个例子，isShow变量是在父组件中使用，也就是vue实例的模板中使用，所以引用的变量是vue实例中的变量。
+        作用域插槽，用一句话对其总结，父组件替换插槽的标签，但是内容由子组件来提供
+        案例如下：
+            <div id="app">
+                <wanyi></wanyi>
+                <wanyi>
+                    <template slot-scope="slot">
+                        <span>{{slot.data.join(' - ')}}</span>
+                    </template>
+                </wanyi>
+            </div>
+
+            <template id="yue">
+                <div>
+                    <slot :data="fruit">
+                        <h4 v-for="item in fruit">{{item}}</h4>
+                    </slot>
+                </div>
+            </template>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                    },
+                    components:{
+                        wanyi:{
+                            template: '#yue',
+                            data(){
+                                return {
+                                    fruit:['芒果','火龙果','草莓','桃子','樱桃']
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
+        结果如下：
+            芒果
+            火龙果
+            草莓
+            桃子
+            樱桃
+            芒果 - 火龙果 - 草莓 - 桃子 - 樱桃
+        可以看到，我们使用子组件中的数据，而样式使用的是父组件的样式，父组件中可以对子组件的数据有不同的展示
+        值得注意的是：这种方式好像已经过时，待会看看现在插槽的使用，特别是作用域插槽这种，如何通过插槽使得父组件获取子组件数据。
+    * 作用域插槽新语法
+        OK，我又百度了一下，上面这种作用域插槽在vue2.6之后就不使用了，下面会讲新语法，
+        普通插槽或者具名插槽作用:父组件传递数据/元素/组件给子组件，而子组件定义slot标签接收
+        作用域插槽：为子组件<slot>绑定属性，传递数据给父组件，父组件通过 v-slot:xxx="props" 接收子组件传递的属性
+        案例如下：
+            <div id="app">
+                <wanyi></wanyi>
+                <wanyi v-slot:cslot="param">
+                    {{param.fruit.join(' - ')}}
+                    {{param.cname}}
+                </wanyi>
+            </div>
+
+            <template id="yue">
+                <div>
+                    <slot name="cslot" :fruit="fruit" :cname="name">
+                        <h4 v-for="item in fruit">{{item}}</h4>
+                    </slot>
+                </div>
+            </template>
+            <script>
+                let app = new Vue({
+                    el: '#app',
+                    data: {
+                    },
+                    components:{
+                        wanyi:{
+                            template: '#yue',
+                            data(){
+                                return {
+                                    fruit:['芒果','火龙果','草莓','桃子','樱桃'],
+                                    name: '科一',
+                                    age: 20
+                                };
+                            },
+                        },
+                    },
+                });
+            </script>
+        总结：
+            作用域插槽旧语法：
+                //父组件模板
+                <wanyi>
+                    <template slot-scope="slot">
+                        <span>{{slot.data.join(' - ')}}</span>
+                    </template>
+                </wanyi>
+                //子组件模板
+                <template id="yue">
+                    <div>
+                        <slot :data="fruit">
+                            <h4 v-for="item in fruit">{{item}}</h4>
+                        </slot>
+                    </div>
+                </template>
+                子组件模板中slot标签上，绑定子组件中的数据，这些数据可以被父组件使用，例如其中的:data='fruit',data名字可以任意取
+                然后，父组件在使用的时候需要使用template标签，并在标签上使用slot-scope='xxx'，该属性值任意取，
+                然后取数据时使用{{xxx.data.join(' - ')}}，可以看到，xxx其实是一个对象，而子组件绑定的数据是该对象的一个属性
+                这个对象长成这样：{ "fruit": [ "芒果", "火龙果", "草莓", "桃子", "樱桃" ] }，如果绑定更多子组件数据也是这样取值
+            作用域插槽新语法
+                 //父组件模板
+                <wanyi v-slot:cslot="param">
+                    {{param.fruit.join(' - ')}}
+                    {{param.cname}}
+                </wanyi>
+                //子组件模板
+                <template id="yue">
+                    <div>
+                        <slot name="cslot" :fruit="fruit" :cname="name">    //cname是param对象中的属性，属性值是子组件中name数据
+                            <h4 v-for="item in fruit">{{item}}</h4>
+                        </slot>
+                    </div>
+                </template>
+                新语法在子组件中使用name属性表示该插槽的名字，即具名插槽，绑定数据还是和旧语法一样，
+                父组件在使用的时候不是必须使用template标签，你可以直接使用在子组件标签上，当然，如果有多个插槽，还是建议使用template标签
+                v-slot:子组件插槽名="xxx"，该对象和旧语法中的对象一致，取值也是一样的
+                所以与旧版本变化就是v-slot替换了slot-scope，并且子组件可以使用具名插槽了
+
+
+模块化开发
+    模块化指的是将多个js文件组织起来，但是多个文件组织起来需要解决全局变量重名问题和复用性问题，传统解决方案是使用立即执行函数(闭包)包裹
+    我们的函数，然后该函数返回一个对象，该对象中暴露一些复用的变量或者函数。而现在前端模块化已经有了很多规范，以及对应的实现方案
+    CommonJS,ES6的Modules等等，模块化的重点是导入和导出
+    * CommonJS，需要node环境
+        导出：
+            module.exports={
+                flag:true,
+                test(a,b){
+                    return a+b;
+                },
+                demo(a,b){
+                    return a*b;
+                }
+            }
+        导入：
+            //解构赋值
+            let {test,demo,flag} = require('./moduleA');
+            //等同于
+            let mA = require('moduleA');
+            let test = mA.test;
+            let demo = mA.demo;
+            let flag = mA.flag;
+    * ES6中模块化
+        - 导出和导入：
+            //在页面上引入js文件，并且使用type="module",表示该文件是一个模块，只有设置模块类型，才能支持导入导出
+                <script src="../js/vue.js"></script>
+                <script src="../js/a.js" type="module"></script>
+                <script src="../js/b.js" type="module"></script>
+                <script src="../js/c.js" type="module"></script>
+            //导出使用export关键字，a.js
+                let name='万一';
+                let you="明月";
+                function say() {
+                  console.log(`万一爱明月`);
+                }
+                export {say,name,you};
+            //导出的第二种方式：
+                export let name = '万一'
+            //导入使用import关键字，b.js
+                import {say} from './a.js';
+                say();
+            导出不仅可以导出变量，还可以导出函数和类
+        - 默认导出，export default
+            default关键字解决这个问题，我们导入别人模块中的变量或者函数时，只能使用别人的变量名或者函数名
+            我们想自己能定义导入的变量名或者函数名，就需要使用default关键字
+            官当定义：一个模块中包含某个功能，我们不希望给这个功能命名，而是让导入者可以自己来命名
+            //a.js
+                let you="明月";
+                export default you;
+            //b.js
+                import yang from './a.js';  //引入的功能名不再需要大括号包裹{yang}
+                console.log(yang+'好好看');
+            值得说明的是，默认导出(export default)在一个模块中只能导出一个变量或者函数或者类，因为导出多个时，导入的话就分不清了
+        - 通配符导入
+            当需要导入的功能太多的时候，我们可以使用*表示导入该模块全部的导出的内容
+            import * as xxx from './a.js'
+            该命令表示将a.js中导出的内容，全部导入到本模块中，并存到xxx对象之中，当需要某个功能时，
+            直接xxx.name，即可取出a.js中的name变量
+    * webpack，前端模块化打包工具
+        之前讲到前端模块化有很多规范CommonJS,ES6,AMD,CMD等，也有对应的实现方案，但是使用他们需要其他底层支持，除了ES6是浏览器支持的
+        CommonJS需要node环境，而webpack则是帮助我们解决底层环境和浏览器支持问题，我们可以使用以上的模块化规范而不需要考虑是否有其依赖。
+        所以我们编写的代码需要经过webpack才会转成真正被浏览器执行的代码。
+        - webpack的核心：模块化和打包
+            模块化：就是上面说的，让我们的代码不必考虑底层支持，并且可以处理模块之间的依赖关系
+            打包：将webpack中的各种资源模块进行打包合并成一个或多个包(bundle)，并在打包的过程中，还可以对资源进行处理
+                比如压缩图片，将scss转成css，将es6语法转成es5，将typeScript转成javaScript
+        - 安装webpack，webpack需要node环境
+            全局安装：npm install webpack@3.6.0 -g
+            //局部安装(本地安装)：npm install webpack@3.6.0 --save-dev
+            为什么全局安装后，还需要局部安装呢？
+                在终端直接执行webpack命令，使用的是全局安装的webpack
+                当在package.json中定义了scripts时，其中包含了webpack命令，那么这些命令使用的就是局部webpack，
+                局部(本地)安装在真实开发中是非常常见的，大多时候都是本地安装，下面来看看本地安装和全局安装后，package.json文件有什么不同
+                全局安装
+                    {
+                      "name": "learn_vue",
+                      "version": "1.0.0",
+                      "description": "study vue",
+                      "main": "main.js",
+                      "scripts": {
+                        "test": "echo \"Error: no test specified\" && exit 1",
+                        "build": "webpack"  //这是我后来添加上的，这里的webpack命令就是全局webpack的命令
+                      },
+                      "author": "",
+                      "license": "ISC"
+                    }
+                本地安装
+                    //项目目录下输入npm install webpack@3.6.0 --save-dev，会生成node_nodules文件夹和新的package.json文件
+                    {
+                      "name": "learn_vue",
+                      "version": "1.0.0",
+                      "description": "study vue",
+                      "main": "main.js",
+                      "scripts": {
+                        "test": "echo \"Error: no test specified\" && exit 1",
+                        "build": "webpack"  //注意，在webpack高版本中需要设置模式
+                        //"dev": "webpack --mode development",  //当webpack高版本的时候，后面需要带上mode
+                        //"build": "webpack --mode production"
+                      },
+                      "author": "",
+                      "license": "ISC",
+                      "devDependencies": {  //相比全局安装，多了的部分，这部分叫开发时依赖，也就是开发时才会有，项目打包发布时，项目中就没有这些依赖
+                        "webpack": "^3.6.0"     //webpack是项目打包工具，打包后的项目中不需要webpack依赖，就会去除，另外还要一个dependencies属性
+                      }                         //dependencies属性和devDependencies相反，它是打包后依然存在的依赖，是运行时依赖。
+                    }
+
+        - webpack简单的案例：
+            项目目录一般有两个目录，src和dist目录，src放源代码，dist放打包后的js文件，之后只需要在html页面中引入打包后的js文件即可
+            dist中的js文件是webpack将src中的js文件转化后的文件。
+            1)src中创建两个文件，main.js，mathUtil.js，其中main.js导入mathUtil.js的函数并使用
+                //mathUtil.js
+                function jia(a, b) {
+                  return a+b;
+                }
+                function jian(a,b) {
+                  return a-b;
+                }
+                function cheng(a,b) {
+                  return a*b;
+                }
+                function chu(a, b) {
+                  return a/b;
+                }
+                export {
+                  jia,jian,cheng,chu
+                };
+                //main.js
+                import * as math from './mathUtil'
+                console.log(math.jia(3, 5));
+                console.log(math.cheng(3, 5));
+            2)使用打包命令，将main.js文件转化成dist目录中打包后的bundle.js文件
+                webpack ./src/main.js ./dist/bundle.js
+                //新版本命令有变化，webpack4.0以上可能是下面这个命令
+                --entry ./src/main.js -o ./dist/bundle.js --mode development
+            3)在html页面中引入bundle.js文件
+                <title>vue测试</title>
+                <script src="dist/bundle.js"></script>
+
+        - webpack的webpack.config.js配置和package.json配置
+            webpack.config.js配置
+                当我们将src中的main.js文件打包成dist目录下的bundle.js文件时，我们使用的是webpack xxx，加上路径，进行模块打包
+                其实我们可以通过配置webpack，使得我们只需要在命令行中输入webpack，即可完成打包(前提你的项目下有名为webpack.config.js文件)，具体步骤如下：
+                1)创建webpack.config.js文件，文件名是固定的(后面可以通过配置更改)，导出一个对象，
+                    这个对象被webpack接收后，自动识别打包之前路径，打包之后的路径
+                    //依赖node中内部模块
+                    const path = require('path');
+
+                    //Common.js导出
+                    module.exports={
+                      entry: './src/main.js',
+                      output:{
+                        path:path.resolve(__dirname,'dist'),    //path需要是绝对路径，这里使用node中内置path模块中的__dirname变量，表示该文件绝对路径目录
+                        filename: 'bundle.js'
+                      }
+                    }
+                2)在项目的目录下使用npm init命令，创建一个package.json文件，这个文件是npm管理的文件
+                    我们会把需要的模块写到该文件中后，通过npm install命令，npm就会在当前目录中安装这些模块供我们使用，就像maven。
+                    //package.json
+                    {
+                      "name": "learn_vue",
+                      "version": "1.0.0",
+                      "description": "study vue",
+                      "main": "main.js",
+                      "scripts": {
+                        "test": "echo \"Error: no test specified\" && exit 1"
+                      },
+                      "author": "",
+                      "license": "ISC"
+                    }
+                    这个文件夹就是npm对我们的项目的描述，我们还可以在这个文件中增加一些依赖，npm就会自动下载这些依赖到本地的node_modules文件夹中供我们使用
+                值得说明的是：
+                    基于node.js创建的工程，通常会有一个package.json文件。不过，有时候，你会发现有的工程并没有这个package.json文件，
+                    但工程也可以正常运行，这是怎么回事呢？
+                    package.json文件可以没有，但node_modules这个文件夹肯定会有的。这就是说，有两种方法添加node的modules。
+                    第一种方法：通过生成package.json文件，编辑这个文件，再通过npm install。这时候，我们只需要把依赖添加到package.json文件中。
+                        就会使得所依赖的module加载到node_modules文件夹中。
+                    第二种方法：不用package.json， 而是直接通过npm install moduleName的方式，逐个添加依赖。
+            package.json配置
+                上面的例子是简化了打包时的命令，配置之后，我们只需要在cmd中输入webpack即可完成打包，实际上真正开发中并不会使用这种命令进行打包
+                实际上会使用npm run build命令进行打包，接下来我们要配置，使得之前输入webpack完成打包，转向成输入npm run build进行打包，
+                看似命令更复杂了，其实webpack命令还可以很长，所以要进行映射成我们这种命令。
+                    //在package.json的script中进行配置
+                    {
+                      "name": "learn_vue",
+                      "version": "1.0.0",
+                      "description": "study vue",
+                      "main": "main.js",
+                      "scripts": {
+                        "test": "echo \"Error: no test specified\" && exit 1",
+                        "build": "webpack"
+                      },
+                      "author": "",
+                      "license": "ISC"
+                    }
+                    在script中配置好build后，当我们输入npm run build时，npm就会去该文件下的script中找到build，并执行对应的命令，
+                    即在项目目录中执行webpack命令，相当于用npm做了一层命令映射。另外当我们配置好script后，在终端中执行的webpack会优先执行本地的webpack依赖的命令
+                    这个本地webpack依赖在本项目的node_module文件夹中，如果没有配置script，才会再去执行全局webpack命令。
+                    这个全局webpack命令是全局的webpack依赖中的命令，在node文件夹中的node_module中。
+        - loader
+            回到开始所说的，webpack的作用是处理我们写的js代码。并且可以处理js之间的相关依赖，但是开发中我们不仅要处理基本的js代码，
+            我们还需要加载css,图片，包括将es6转成es5，将typeScript转成es5，将scss转成css,less转成css,将.jsx，.vue转成js文件等等。
+            也就是说，webpack基础功能是管理js的模块化和管理js文件之间的依赖，而上面这些功能webpack就是使用对应的loader完成的。
+            loader使用过程
+                1)通过npm安装需要使用的loader
+                2)在webpack.config.js中的module关键字下进行配置
+            webpack中使用css文件的配置
+                1)既然要在webpack中管理css，就需要使用loader，先创建一个css目录，创建一个normal.css文件
+                    body{
+                        background-color: aqua;
+                    }
+                2)去官网的loaders中寻找css的loader，并配置到webpack.config.js文件中
+                    2.1)找到css-loader,style-loader,使用npm安装这两个loader依赖
+                        css-loader：解析css文件后，使用import加载，并且返回css代码
+                        style-loader：将模块的导出作为样式添加到DOM中
+                        //添加两个loader依赖，这两个loader都会下载到本地项目的node—module文件夹中
+                        npm install --save-dev css-loader@0.28.0    //webpack版本不同的话就装不同版本的loader
+                        npm install style-loader@0.18.1 --save-dev  //在项目下node_modules文件夹找到webpack依赖中的package.json，查看具体版本
+                    2.2)在webpack.config.js文件中对两个loader进行配置
+                        //依赖node中内部模块
+                        const path = require('path');
+
+                        //Common.js导出
+                        module.exports={
+                          entry: './src/main.js',
+                          output:{
+                            path:path.resolve(__dirname,'dist'),
+                            filename: 'bundle.js'
+                          },
+                          module: {
+                            rules: [
+                              {
+                                test: /\.css$/,
+                                use: [ 'style-loader', 'css-loader' ]   //对css处理需要使用这两个loader，并且webpack读取是从右到左读取loader，顺序不能变
+                              }
+                            ]
+                          }
+                        }
+                3)在main.js文件中引入css模块，配置好loader后，相当于每一个css文件，或者图片都是一个图片，
+                    webpack中的loader相当于扩展功能，配置webpack.config.js文件后，我们需要在入口文件引入该css文件
+                    这样，loader才会起效果。
+                    //main.js
+                    //导入css模块
+                    import css from './css/normal.css';
+                4)最后直接npm run build(前提你配置了script),将项目打包成bundle.js文件即可。
+            webpack中使用less文件的配置，less文件是预编译css文件，其文件要转成css文件
+                和配置css相同的步骤：
+                1)创建less文件,special.less
+                    @fontSize: 50px;
+                    @fontColor: red;
+
+                    body{
+                      font-size: @fontSize;
+                      color: @fontColor;
+                    }
+                2)在main.js中引入该less文件，并且写上几句话，因为样式是字体样式
+                    import less from './css/special.less';
+                    document.writeln("<h3>我giao</h3>");
+                3)使用npm安装less的loader，并配置webpack.config.js文件
+                    3.1)安装less的loader
+                        //这些版本号信息在本项目的node_module文件夹中的webpack的package.json中查看的到
+                        npm install --save-dev less-loader@4.1.0 less@3.9.0
+                    3.2)配置webpack.config.js文件
+                        module: {
+                            rules: [
+                              {
+                                test: /\.css$/,
+                                use: [ 'style-loader', 'css-loader' ]
+                              },{
+                                test: /\.less$/,
+                                use: [{
+                                  loader: "style-loader" // creates style nodes from JS strings
+                                }, {
+                                  loader: "css-loader" // translates CSS into CommonJS
+                                }, {
+                                  loader: "less-loader" // compiles Less to CSS
+                                }]
+                              }
+                            ]
+                        }
+
+            webpack中使用图片的配置
+                还是使用loader，不过配置图片有一些注意的地方
+                1)在src下创建img目录，放上2张图片，1.jpg(大小27.24kb)，2.jpg(107kb)
+                2)使用npm安装url-loader，file-loader，并在webpack.config.js中配置相关信息
+                    npm install --save-dev url-loader //不同webpack版本安装不同版本的loader，这个版本号可以在webpack的package.json中找到
+                    npm install --save-dev file-loader  //url-loader是依赖file-loader的，所以直接两个loader全部用npm安装好
+                    //配置webpack.config.js
+                      {
+                        test: /\.(png|jpg|gif|jpeg)$/,
+                        use: [
+                          {
+                            loader: 'url-loader',
+                            options: {
+                              limit: 30000
+                            }
+                          }
+                        ]
+                      }
+                    这里的limit的意思是，如果图片小于这个大小,则图片会被转成base64的格式，直接返回给浏览器字符串显示，如果图片大于这个大小
+                    图片会被打包进dist目录中，以相对路径的方式返回给浏览器，浏览器需要请求该路径才能得到图片，而base64的方式并不需要发出请求
+                3)为了能看到图片配置是否成功，我们在css中引用1.jpg图片，这样，当css被加载的时候，就会把这张图片也当做一个模块。
+                    body{
+                        /*background-color: aqua;*/
+                        background: url("../img/1.jpg");
+                    }
+                4)使用npm install build命令查看浏览器背景是否显示成功。
+                5)如果你使用的是2.jpg图片，上面讲到如果图片大于limit的设置，则浏览器会用url请求的方式获取图片
+                  并且我们知道在dist目录下肯定还是会分img目录等，我们需要将图片打包进dist/img目录中，并且自定义图片名字
+                  {
+                    test: /\.(png|jpg|gif|jpeg)$/,
+                    use: [
+                      {
+                        loader: 'url-loader',
+                        options: {
+                          limit: 8192,
+                          name:'img/[name].[hash:8].[ext]',
+                          // outputPath: './',   //输出路径，这里路径是：path(上面的)+outputPath+name路径
+                          // publicPath: 'dist/'
+                        },
+                      }
+                    ],
+                  }
+                6)如果你的webpack版本是5.0以上，且不使用file-loader的方式，而是使用assets，在webpack.config.js相同的地方配置如下：
+                  {
+                    test:/\.(jpg|png|gif)$/,
+                    type:"asset",
+                    //解析
+                    parser: {
+                      //转base64的条件
+                      dataUrlCondition: {
+                        maxSize: 25 * 1024, // 25kb
+                      }
+                    },
+                    generator:{
+                      //与output.assetModuleFilename是相同的,这个写法引入的时候也会添加好这个路径
+                      filename:'img/[name].[hash:6][ext]',
+                      //打包后对资源的引入，文件命名已经有/img了
+                      //publicPath:'./'
+                    },
+                  }
+                7)如果你是webpack5.0以上，又想用4.0以前的方式配置loader，你的webpack.config.js需要进行如下设置，不要你配置的图片会生成多个，造成混乱
+                  {
+                    test: /\.(png|jpg|gif|jpeg)$/,
+                    use: [
+                      {
+                        loader: 'url-loader',
+                        options: {
+                          limit: 8192,
+                          name:'img/[name].[hash:8].[ext]',
+                          // outputPath: './',   //输出路径，这里路径是：path(上面的)+outputPath+name路径
+                          // publicPath: 'dist/'
+                          /*
+                            在url-loader内部封装了file-loader而file-loader在新版本中esModule属性默认为true
+                            即默认使用ES模块语法导致了引用图片文件的方式和以前的版本不一样,引入路径改变了，自然找不到图片。
+                           */
+                          esModule: false
+                        },
+                      }
+                    ],
+                    /*
+                      当在webpack 5中使用旧的assets loader（如file-loader/url-loader/raw-loader等）和asset模块时，
+                      这可能会导致asset重复，所以你可能想阻止webpack 5内置的asset模块的处理，
+                      你可以通过将asset模块的类型设置为‘javascript/auto’来解决。
+                     */
+                    type: 'javascript/auto'
+                  }
+                更多的关于webpack打包图片博客，
+                  https://www.jianshu.com/p/36e972b19b28，
+                  https://www.jianshu.com/p/43c2216ef004
+                  https://segmentfault.com/a/1190000038507183
+                  https://www.cnblogs.com/mmit/p/12961606.html
+                  https://blog.csdn.net/wu_xianqiang/article/details/117171900
+                  https://blog.csdn.net/glorydx/article/details/109218972
+                这部分有点乱，之后再研究。
+            webpack中es6转es5配置
+                webpack打包后并没有将es6打包成es5,如果想转成es5,则需要使用babel
+                1)使用npm安装babel-loader，并且配置webpack.config.js
+                  npm install -D babel-loader @babel/core @babel/preset-env --save-dev
+                  配置webpack.config.js
+                  {
+                    test: /\.js$/,
+                    exclude: /(node_modules|bower_components)/,
+                    use: {
+                      loader: 'babel-loader',
+                      options: {
+                        presets: ['@babel/preset-env']
+                      }
+                    }
+                  }
+                2)然后重新npm run build打包,打包后检查dist中的bundle.js文件中有没有const等es6语法
+        - webpack配置vue
+            1)npm安装vue
+              npm install vue --save  //vue是我们一直需要使用的，即运行时期一直用的依赖，所以不需要写成--save-dev，dev表示开发时依赖。
+            2)在入口函数中引入vue
+              //引入vue
+              import Vue from 'vue';
+              const app  = new Vue({
+                el:'#app',
+                data:{
+                  message:'万一'
+                }
+              });
+            3)在html中输出我们的message
+              <body>
+                <div id="app">
+                  <div>
+                    <h3>{{message}}</h3>
+                  </div>
+                </div>
+              </body>
+              <script src="dist/bundle.js"></script>
+            4)重新打包之后发现并没有看到我们的message数据输出，我们还需要配置webpack.config.js
+              在exports的对象上，加上resolve属性，具体如下
+              resolve: {
+                  alias: {
+                    'vue$':'vue/dist/vue.esm.js'
+                  }
+                }
+            配置完毕后，我们就可以打开我们的html页面，看到我们输出的message信息了
+        - vue中的el属性和template的区别
+            我们在实际开发中，可能并不会去在html页面中写多余的东西，例如不会在挂载的div内写html代码
+              //HelloVueJs.html
+              <div id="app">
+                <h3>{{message}}</h3>    //实际上并不会在vue管理的div内写html代码
+              </div>
+            而是在vue实例中使用template属性，写在vue的template属性之中，就像以前的其他组件一样，与其他组件不同的是，
+            vue实例(根组件)同时存在el属性和template属性，当两个属性同时存在时，vue解析时会将template的内容替换原来html中的vue实例管理的div
+            再后来，我们还会抽取template中的内容到其他文件，请听下回分解
+        - vue终极方案
+            1)前端页面helloVueJs.html，只需要写上vue实例管理的标签即可，vue编译时会将vue实例管理的div使用template替换
+                <!DOCTYPE html>
+                <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>vue测试</title>
+                    </head>
+                <body>
+                  <div id="app">
+                  </div>
+                </body>
+                    <script src="dist/bundle.js"></script>
+                </html>
+            2)来到我们的入口函数，创建根组件，即vue实例，但我们并不需要给它一个app的变量名了，
+
+                import wanyi from './vue/app.vue';  //引入我们自己创建的组件，这个组件作为根组件的子组件，es6的模块导入语法
+
+                //引入vue
+                import Vue from 'vue';      //引入vue模块
+                //vue实例，根组件
+                new Vue({
+                  el:'#app',
+                  template:'<wanyi/>',      //template中的内容会替换html页面中的div
+                  components:{              //这里是根组件的子组件，相当于wanyi:wanyi，使用es6的变量增强写法
+                    wanyi
+                  }
+                });
+            3)第二步中引用到了我们自己定义的.vue文件，所以需要配置loader，让webpack认识该文件，就像配置css一样
+                3.1)使用npm安装vue-loader,vue-template-compiler
+                    npm install vue-loader vue-template-compiler --save-dev     //这些依赖只需要存在编译时期，所以使用--save-dev
+                    警告：vue的版本号要与vue-template-compiler的版本号一致，
+                    并且vue-loader版本如果高了会需要你配置插件，如果低了打包的时候会报错(Cannot read property 'vue' of undefined)
+                    报错的解决方法：如果项目中webpack升级到4^ 的话 升级下vue-loader到14^ 然后问题就没有了
+                    我的vue-loader版本配置在14，如果你需要配置，请打开你项目的package.json，将vue-loader版本修改成"vue-loader": "^14.0.0"
+                3.2)配置webpack.config.js文件
+                    {
+                        test: /\.vue$/,
+                        use: ['vue-loader']
+                    }
+            4)接下来创建我们的vue组件了，这个文件创建顺序无所谓，不一定是第4步，也可以是第0步,下面是我的app.vue
+                <template>
+                  <button @click="show" class="bt">{{message}}</button>
+                </template>
+
+                <script>
+                export default {
+                  name: 'wanyi',
+                  data(){
+                    return{
+                      message:'万一',
+                    }
+                  },
+                  methods:{
+                    show(){
+                      console.log('明月');
+                    }
+                  }
+                };
+                </script>
+
+                <style scoped>
+                  .bt{
+                    color: blue;
+                  }
+                </style>
+            总结：
+                首先安装vue-loader,vue-template-compiler，并配置webpack.config.js，以使得webpack能够解决.vue结尾的文件
+                然后在入口函数中导入vue模块(当然你得用npm安装vue)，并配置好根组件，然后在src中创建vue目录专门存放vue组件，接着创建我们的组件
+                编写好我们的组件后，在main.js入口函数中导入我们的组件，最后将组件挂载到根组件上，然后打包就好了，运行浏览器查看结果。
+        - plugin
+            plugin，插件，通常是用于对某个现有的架构进行扩展
+            webpack中的插件，就是对webpack现有功能的各种扩展，比如打包优化，文件压缩等
+            loader和plugin区别：
+                loader主要用于转换某些类型的模块，它是一个转换器
+                plugin是对webpack本身的扩展，是一个扩展器
+            plugin的使用过程
+                1)通过npm安装需要使用的plugin(某些webpack已经内置的插件不需要安装)
+                2)在webpack.config.js中的plugins中配置插件
+            配置添加版权的plugin，BannerPlugin
+                修改webpack.config.js,在暴露的对象添加plugins属性,对了，记得导入webpack模块
+                const webpack = require('webpack')
+                plugins: [
+                      new webpack.BannerPlugin('最终版权归万一和明月所有')
+                  ]
+                配置完毕后，重新打包文件，然后打开bundle.js，查看第一行，就会显示我们的版权
+            配置打包html的plugin
+                现在我们的项目的index.html文件(这里是HelloVueJs.html)是在项目的根目录的，而实际上，我们的dist文件会放到服务器上运行，但是打包后的dist中并没有我们的index.html文件
+                所以该插件可以自动生成一个index.html文件(可以指定模板来生成)，还可以将打包的js文件，自动通过script标签插入到body中。
+                实际开发中，vue项目一般只有一个页面，这就叫单页面富应用(SPA页面)，所以index.html是我们的主要开发对象。
+                配置过程
+                1)安装HtmlWebpackPlugin插件
+                    npm install html-webpack-plugin --save-dev
+                2)修改webpack.config.js
+                    const htmlWebpackPlugin = require('html-webpack-plugin')
+                    plugins: [
+                          new webpack.BannerPlugin('最终版权归万一和明月所有'),
+                          new htmlWebpackPlugin({
+                            template: 'HelloVueJs.html'     //用于生成dist/index.html的模板，模板中并不需要写script标签引入bundle.js，插件会自动引用
+                          })
+                      ]
+                配置好后，直接npm run build，打包文件，就可以看到插件自动在dist打包目录中创建了index.html，
+                而配置插件时给的对象，对象的template属性表示，以HelloVueJs.html文件作为index.html的模板创建，
+                这里的路径是相对路径，相对于webpack.config.js文件，因为我的这个HelloVueJs.html文件与webpack.config.js文件在同一目录，
+                所以直接写文件名。
+            配置压缩js的插件
+                可以使用插件，我等下会讲到，不过新版本webpack有个build模式，以build模式运行webpack，会自动对bundle.js进行压缩
+                可以看下npm run build的配置，在package.json：
+                    "scripts": {
+                        "test": "echo \"Error: no test specified\" && exit 1",
+                        "dev": "webpack --mode development",
+                        "build": "webpack --mode production"
+                      }
+                可以看到，以production，生产模式运行，会自动对bundle.js进行压缩，下面是使用插件的方式压缩bundle.js文件
+                1)安装依赖
+                    npm install uglifyjs-webpack-plugin --save-dev
+                2)修改webpack.config.js
+                    const uglifyjsWebpackPlugin = require('uglifyjs-webpack-plugin')
+                    plugins: [
+                            new UglifyjsWebpackPlugin() //压缩bundle.js文件会导致你的版权插件失效，被删除掉。
+                          ]
+        - 搭建本地服务器(WDS)
+            webpack提供了一个可选的本地开发服务器，这个本地服务器基于node.js搭建，内部使用express框架，可以实现我们想要的
+            让浏览器自动刷新显示我们修改之后的结果，这个功能，可以通过在webpack.config.js返回的对象中配置一个watch属性实现
+            watch属性值为true时，当我们修改文件后，会自动打包我们的文件。
+            下面是配置本地服务器的步骤:
+            1)安装依赖
+                npm install --save-dev webpack-dev-server
+                如果安装报错，说找不到python,让你安装python,安装完又让你安装vsCode，不知道什么毛病，反正我安装完这两个才能安装webpack-dev-server依赖
+                最后，webpack，webpack-cli,webpack-dev-server三个依赖之间版本有影响，不能随便安装，下面是我安装所有依赖版本
+                    "devDependencies": {
+                        "@babel/core": "^7.15.0",
+                        "@babel/preset-env": "^7.15.0",
+                        "babel-loader": "^8.2.2",
+                        "css-loader": "^6.2.0",
+                        "file-loader": "^6.2.0",
+                        "html-webpack-plugin": "^5.0.0",
+                        "less": "^4.1.1",
+                        "less-loader": "^7.2.0",
+                        "style-loader": "^3.2.1",
+                        "url-loader": "^4.1.1",
+                        "vue-loader": "^14.0.0",
+                        "vue-template-compiler": "^2.6.14",
+                        "webpack": "^5.38.0",
+                        "webpack-cli": "^4.7.0",
+                        "webpack-dev-server": "^4.0.0"
+                      }
+            2)配置webpack.config.js
+                在返回的对象中添加属性devServer属性
+                devServer: {
+                    contentBase: './dist',  //表示为哪个文件夹提供本地服务，默认是根文件夹，相对webpack.config.js的路径
+                    inline: true  //是否实时监听文件改动
+                  }
+            3)配置package.json
+                经过1,2步，我们已经配置好本地服务器了，启动本地服务器使用命令：webpack-dev-server，但是我们发现该命令执行不了
+                应该这样执行命令找的是全局安装中的依赖，所以我们需要在项目的package.json中配置scipt：
+                "server": "webpack-dev-server --mode development --open"
+                --mode development表示使用开发环境启动打包项目，这是webpack5需要配置的
+                --open表示，当devServer打包完毕后，立即打开浏览器查看index.html页面
+                上面命令配置在script中，表示当我们执行npm run server时，则会执行后面的命令，找的是项目中node_module中的依赖。
+        - 配置文件的分离
+            把webpack.config.js中开发的配置和生产的配置分离
+            配置步骤如下：
+                1)在项目根目录创建config文件夹，专门放配置的，然后创建base.config.js,dev.config.js,prod.config.js
+                    base.config.js文件内存放开发和生产模式中都需要的配置，而dev.config.js文件存放开发模式时需要的配置
+                    prod.config.js存放生产模式时需要的配置，当开发的时候，我们使用base.config.js+dev.config.js文件，反之同样~
+                2)创建好三个配置文件，再区分各个配置到对应的文件中，然后我们需要将base.config.js与另外两个文件之间产生关联，
+                    需要安装一个合并依赖：npm install webpack-merge --save-dev
+                    安装依赖后，再在两个配置文件中导入该模块，并更改配置，下面是我的配置代码
+                    2.1)base.config.js
+                        //依赖node中内部模块
+                        const path = require('path');
+                        const htmlWebpackPlugin = require('html-webpack-plugin')
+
+                        //Common.js导出
+                        module.exports={
+                          entry: './src/main.js', //打包入口，相对于webpack.config.js，main.js所在的位置
+                          output:{
+                            path:path.resolve(__dirname,'dist'),  //输出路径
+                            filename: 'bundle.js',    //输出文件名,
+                            // publicPath: 'dist/',
+                          },
+                          module: {
+                            rules: [
+                              {
+                                test: /\.css$/,
+                                use: [ 'style-loader', 'css-loader' ]
+                              },{
+                                test: /\.less$/,
+                                use: [{
+                                  loader: "style-loader" // creates style nodes from JS strings
+                                }, {
+                                  loader: "css-loader" // translates CSS into CommonJS
+                                }, {
+                                  loader: "less-loader" // compiles Less to CSS
+                                }]
+                              },/*{
+                                test:/\.(jpg|png|gif)$/,
+                                type:"asset",
+                                //解析
+                                parser: {
+                                  //转base64的条件
+                                  dataUrlCondition: {
+                                    maxSize: 25 * 1024, // 25kb
+                                  }
+                                },
+                                generator:{
+                                  //与output.assetModuleFilename是相同的,这个写法引入的时候也会添加好这个路径
+                                  filename: 'img/[name][hash:6].[ext]',
+                                  //打包后对资源的引入，文件命名已经有/img了
+                                  publicPath:'./'
+                                },
+                              }*/
+                              {
+                                test: /\.(png|jpg|gif|jpeg)$/,
+                                use: [
+                                  {
+                                    loader: 'url-loader',
+                                    options: {
+                                      limit: 8192,
+                                      name:'img/[name].[hash:8].[ext]',
+                                      // outputPath: './',   //输出路径，这里路径是：path(上面的)+outputPath+name路径
+                                      // publicPath: 'dist/'
+                                      /*
+                                        在url-loader内部封装了file-loader而file-loader在新版本中esModule属性默认为true
+                                        即默认使用ES模块语法导致了引用图片文件的方式和以前的版本不一样,引入路径改变了，自然找不到图片。
+                                       */
+                                      esModule: false
+                                    },
+                                  }
+                                ],
+                                /*
+                                  当在webpack 5中使用旧的assets loader（如 file-loader/url-loader/raw-loader 等）和asset模块时，
+                                  这可能会导致asset重复，所以你可能想阻止webpack 5内置的asset模块的处理，
+                                  你可以通过将asset模块的类型设置为‘javascript/auto’来解决。
+                                 */
+                                type: 'javascript/auto'
+                              },{
+                                test: /\.js$/,
+                                exclude: /(node_modules|bower_components)/,
+                                use: {
+                                  loader: 'babel-loader',
+                                  options: {
+                                    presets: ['@babel/preset-env']
+                                  }
+                                }
+                              },{
+                                test: /\.vue$/,
+                                use: ['vue-loader']
+                              }
+                            ]
+                          },
+                          resolve: {
+                            alias: {
+                              'vue$':'vue/dist/vue.esm.js'
+                            }
+                          },
+                          plugins: [
+                            new htmlWebpackPlugin({
+                              template: 'HelloVueJs.html'
+                            })
+                          ],
+                          // mode: 'development', //设置webpack模式
+                          // watch: true  // 监听文件改动并自动打包
+                        }
+                    2.2)dev.config.js
+                        let webpackMerge = require('webpack-merge');
+                        let base = require('base.config');
+                        module.exports = webpackMerge(base,{
+                          devServer: {
+                            watchFiles: '../dist',  //表示为哪个文件夹提供本地服务，默认是根文件夹，相对webpack.config.js的路径
+                            liveReload:true   //是否实时监听文件改动
+                          },
+                        });
+                    2.3)prod.config.js
+                        const webpack = require('webpack')
+                        let webpackMerge = require('webpack-merge');
+                        let base = require('base.config');
+
+                        module.exports = webpackMerge(base,{
+                          plugins: [
+                            new webpack.BannerPlugin('最终版权归万一和明月所有'),
+                          ],
+                        });
+                    从上面可以看到，当我开发环境时，我使用了devServer，当我生产环境时，我使用了版本插件
+                3)修改base.config.js文件
+                    output:{
+                        path:path.resolve(__dirname,'../dist'),  //输出路径，将./dist修改成../dist
+                        filename: 'bundle.js',    //输出文件名,
+                        // publicPath: 'dist/',
+                      },
+                    因为base.config.js文件在config目录之下，如果不修改，该在config目录下生成dist目录并将打包后的数据放在其中
+                    而我们的dist目录应该放在项目的根目录。
+                4)当我们修改完毕后，我们本来应该执行打包命令npm run dev，而经过package.json中的script会执行webpack --mode development
+                    看下我的script中现在是如何配置的：
+                        "scripts": {
+                            "test": "echo \"Error: no test specified\" && exit 1",
+                            "dev": "webpack --mode development",
+                            "build": "webpack --mode production",
+                            "server": "webpack-dev-server --mode development --open"
+                          }
+                    这样的启动webpack，webpack会寻找默认的文件名，webpack.config.js，而我们将配置放在了config目录下，并使用base.config.js替代了
+                    原来的配置文件，所以我们需要修改这里的配置，修改后如下：
+                        "test": "echo \"Error: no test specified\" && exit 1",
+                        "dev": "webpack --mode development --config ./config/dev.config.js",
+                        "build": "webpack --mode production --config ./config/prod.config.js",
+                        "server": "webpack-dev-server --mode development --open --config ./config/dev.config.js"
+
+
+npm的命令
+    更新依赖：npm-check检查npm依赖包是否有更新，错误以及不在使用的。
+        安装：npm install -g npm-check
+
+
+
+vue-cli详解
+    vue-cli是vue的脚手架，cli是Command-line interface,翻译为命令行界面，但是俗称脚手架
+    当我们使用vue开发大型应用时，脚手架能帮我们配置代码目录结构，项目结构和部署，热加载，代码单元测试等事情
+    使用vue-cli可以快速搭建vue开发环境以及对应的webpack配置
+    全局安装vue脚手架：npm install @vue/cli -g
+    安装脚手架2模板
+        当我们vue-cli版本是3时，和2的版本在使用命令上有些区别，所以如果你用的脚手架3但是却希望输入脚手架2的命令时也能成功执行，
+        那么你需要全局安装一个依赖，npm install -g @vue/cli-init，安装好后，使用脚手架2的命令也能成功被执行
+        vue-cli2初始化项目：vue init webpack study-vue-cli  //项目名小写
+        vue-cli3初始化项目：vue create study-vue-cli
+    脚手架2创建项目
+        1)项目中文件
+            src目录中的assets目录，放在该目录中的图片，会根据配置检查时候转成base64字符串格式还是使用url请求获取图片
+            static目录，放在该目录中的文件，会原封不动拷贝到dist目录中
+            ".babelrc"文件是es6转es5的配置文件
+            ".editorconfig"文件是项目文本相关的配置，规定项目文件的规则
+            ".postcssrc.js"文件是css转化时的配置
+        2)vue构建方式中：runtimeCompiler与runtimeOnly的区别
+            - 我们编写的template代码，会被转成ast(abstract syntax tree抽象语法书)，然后再转成render函数
+                render函数再转成虚拟DOM(VDOM),最后转成真实DOM(UI),但是runtimeOnly则直接从render函数开始
+                所以runtimeOnly比runtimeCompiler代码量更少，性能更高
+            - runtimeOnly有个render属性，是一个钩子函数，会被vue调用去创建一个标签！例如：
+                render: h =>{
+                    return h(app)   //这里的h，到时候vue调用时会传递过来一个函数，将app组件创建成<app/>标签
+                }
+                使用render函数和使用template+components功能一样，会替换掉el管理的标签。
+            - 总结：如果在之后的开发中，依然使用template，就选择runtime-Compiler,
+                如果在之后的开发中，使用.vue文件开发组件，那么可以选择runtime-only
+    脚手架3创建项目
+        vue-cli3与vue-cli2的区别：
+            vue-cli3是基于webpack4打造的，vue-cli2是基于webpack3
+            vue-cli3的设计原则是“0配置”，移除了配置文件根目录下的build和config目录
+            vue-cli3提供了vue ui命令，提供了可视化配置，更加人性化
+            vue-cli3移除了static文件夹，新增了public文件夹，并且index.html移动到了public中
+        vue-cli3查看，更改配置
+            可以通过vue ui,去查看配置或者启动打包项目，或者查看项目node_modules/@vue/cli-service/lib/Service.js文件查看配置
+            如果你真的要改一些配置，你需要在项目根目录下中创建vue.config.js文件，文件名是固定的，
+            在其中导出自己的配置(和之前webpack.config.js一样写法)，之后在启动服务后，vue-cli会自动将vue.config.js与默认的配置进行合并
+
+vue-router，前端路由技术,是vue的插件，所以需要Vue.use(vue-router)
+    网站架构发展阶段：
+        前端后不分离阶段：后端渲染页面，后端路由阶段
+        前后端分离阶段：后端提供API接口，前端使用ajax请求后端，渲染数据，但依然是后端来处理url与页面之间的映射关系。
+        单页面富应用阶段：SPA最主要的特点是在前后端分离的基础上加了一层前端路由，即前端来维护一套路由规则
+            具体来说，当用户访问网站的时候(发出一个请求)，就已经从静态服务器拿到所有数据，只有一套html+css+js资源,
+            而前后端分离阶段,用户每次点击页面按钮都会从静态服务器拿一套页面(html+css+js)，这就是为什么是单页面富应用，
+            当使用SPA页面的时候，用户点击页面按钮，页面会生成url，然后从唯一的一套资源中拿取一部分资源进行渲染。这些被抽取的资源就是组件
+            这种根据url拿出某个组件进行渲染就是前段路由
+    前端渲染和前端路由，后端渲染和后端路由的概念
+        后端渲染指的是：像之前写的jsp代码，页面中插入java代码，后端动态根据数据库渲染页面，渲染后将页面给前端
+        后端路由指的是：前端请求后，后端处理请求url，选择好页面，将页面渲染后，返回给前端，即后端处理url和页面之间的映射关系
+        前端渲染指的是：当用户进入网站后，前端先从静态服务器(nginx)获取静态资源(html+css+js)，然后再从服务器获取动态数据
+            拿到数据在前端使用JS动态创建标签，渲染数据
+        前端路由指的是：用户进入网站即可从静态服务器拿到一整套数据，当用户点击按钮后，会生成一个url，根据这个url从之前的数据中
+            找到某个组件进行渲染之前的页面，这种url对应某个组件的映射关系，就是前端路由
+    更改浏览器url却不向服务器再申请资源的方法
+        上面说过，在单页面富应用阶段，只有在用户进入网站的时候才会向服务器申请唯一一套资源，之后用户每次点击按钮，会发生url改变
+        但并不向服务器发送请求，这是如何做到的呢？
+        * 更改浏览器location的hash值，hash模式，默认方式
+        * html5的history模式
+            - history的pushState方法，相当于入栈操作，页面始终显示栈顶url对应的组件页面
+            - history的back方法，相当于出栈操作
+            - history的replaceState方法，这个方法相当于替换了栈顶的url
+            - history的go方法，history.back()等价于history.go(-1)，history.forward()等价于history.go(1)
+vue-router基本使用
+        目前三大框架都有自己的路由实现，vue就是vue-router,路由用于设定访问路径，将路径和组件映射起来
+        在vue-router的单页面应用中，页面的路径的改变就是组件的切换
+        * 路由基础使用步骤
+            1)安装路由：npm install vue-router --save，运行时依赖
+            2)在模块化工程中使用它(因为是一个插件，所以可以通过Vue.use()来安装路由功能)
+                - 导入路由对象，并且调用Vue.use(VueRouter)
+                - 创建路由实例，并且传入路由映射配置
+                - 在vue实例(根组件)中挂载创建的路由实例
+            看看vue中路由的使用吧
+                - router/index,js，路由的配置文件
+                    import { createRouter, createWebHashHistory } from 'vue-router'
+                    import Home from '../views/Home.vue'
+                    import Wanyi from '../views/Wanyi.vue'
+                    const routes = [
+                      {
+                        path: '/',
+                        name: 'Home',
+                        component: Home
+                      },
+                      {
+                        path: '/about',
+                        name: 'About',
+                        component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
+                      },
+                      {
+                        path: '/wanyi',
+                        name: 'Wanyi',
+                        component: Wanyi
+                      }
+                    ]
+                    const router = createRouter({
+                      history: createWebHashHistory(),
+                      routes
+                    })
+                    export default router
+                - App.vue，这个vue文件会挂载到vue实例下，替换vue实例的div标签，这个组件没有script标签
+                    <template>
+                      <div id="nav">
+                        <router-link to="/">Home</router-link> |
+                        <router-link to="/about">About</router-link> |
+                        <router-link to="/wanyi">科一</router-link>
+                      </div>
+                      <router-view/>    //决定了组件渲染的位置
+                    </template>
+                    <style>
+                        样式省略
+                    </style>
+                - vue实例中挂载路由
+                    import { createApp } from 'vue'
+                    import App from './App.vue'
+                    import router from './router'
+                    createApp(App).use(router).mount('#app')
+        * 原始版本的vue-router配置
+            - index.js，路由列表
+                import Vue from 'vue'
+                import VueRouter from 'vue-router'
+                Vue.use(VueRouter)
+                const routes = [
+
+                ]
+                const router = new VueRouter({
+                  mode: 'history',
+                  base: process.env.BASE_URL,
+                  routes
+                })
+
+                export default router
+            - main.js，入口函数，导入路由对象
+                import Vue from 'vue'
+                import App from './App.vue'
+                import router from './router'
+
+                Vue.config.productionTip = false
+
+                new Vue({
+                  router,
+                  render: h => h(App)
+                }).$mount('#app')
+
+        * vue-router设置默认路由
+            我们可以设置一个默认路由，指的是当用户第一次进网站时，所显示的内容，在路由文件中，router/index.js
+                const routes = [
+                  {
+                    path: '/',
+                    redirect: '/home'   //重定向
+                  },{
+                    path: '/home',
+                    name: 'Home',
+                    component: Home
+                  },
+                  {
+                    path: '/about',
+                    name: 'About',
+                    // route level code-splitting
+                    // this generates a separate chunk (about.[hash].js) for this route
+                    // which is lazy-loaded when the route is visited.
+                    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
+                  },
+                  {
+                    path: '/wanyi',
+                    name: 'Wanyi',
+                    component: Wanyi
+                  }
+                ]
+            设置网站url为history模式
+                const router = createRouter({
+                  history: createWebHashHistory(),
+                  routes,
+                  //mode: 'history' 不知道为啥，我没有成功，可能版本变了，设置也变了
+                })
+
+        * router-link标签的补充
+            该标签是一个vue-router中已经内置的组件，它会被渲染成一个a标签
+            to属性：指定跳转的路径
+            tag属性：tag可以指定<router-link>之后渲染成什么标签，比如渲染成li标签，而不是a标签，不过vue-cli3已经移除这个属性
+            replace属性：该属性不需要任何值，仅仅只是标记这个组件，使用history的replaceState方法，指定replace的情况下，
+                后退键返回不能返回到上一个页面中
+            active-class属性：当router-link对应的路由匹配成功时，会自动给当前标签设置一个router-link-active的class
+                设置active-class="active"可以修改默认的名称，在进行高亮显示的导航菜单或者底部tabbar时，会使用到该属性，
+                比如我点击哪个按钮，哪个按钮变颜色，但是通常不会修改class值，会直接使用默认的router-link-active即可
+                可以统一在路由文件中增加linkActiveClass属性，使用该属性，当组件被点击后，会增加对应的样式名
+                - <router-link to="/wanyi" active-class="wanyi">科一</router-link>
+
+                - const router = createRouter({
+                    history: createWebHashHistory(),
+                    routes,
+                    linkActiveClass: 'wanyi'
+                  })
+                简而言之，配置这个属性后，当组件激活后，标签样式中会有你指定的名字<a class="wanyi"></a>
+        * 通过代码跳转路由
+            上面例子都是通过to属性，使得我们的url跳转其他地址，从而替换组件，我们也可以通过代码实现同样的效果
+            案例如下：router/index.js
+                原来的：<router-link to="/wanyi" active-class="yiwan">科一</router-link>
+                现在的：
+                    <button @click="toWanyi()">科一</button>
+                    <script>
+                        export default {
+                          name: 'App',
+                          methods: {
+                            toWanyi(){
+                                this.$router.push('/wanyi')
+                            }
+                          }
+                        }
+                    </script>
+        * 动态路由
+            在某些情况下，一个页面的path路径可能是不确定的，就像后端的路径变量一样
+            原来的：
+                //路由配置文件中,router/index.js
+                {
+                    path: '/wanyi',
+                    name: 'Wanyi',
+                    component: Wanyi
+                }
+                //App.vue
+                <router-link to="/wanyi">科一</router-link>
+                当我点击跳转时，路径变成/wanyi，会匹配到path，找到Wanyi组件进行渲染
+            我想实现，点击跳转时，/wanyi/[id],后面跟上一个变量，这个id变量将来从数据库中获取
+            现在的：
+                //路由配置文件中
+                {
+                    path: '/wanyi/:id',
+                    name: 'Wanyi',
+                    component: Wanyi
+                }
+                //App.vue
+                <router-link :to="'/wanyi/'+id" active-class="yiwan">科一</router-link>
+                <script>
+                export default {
+                  name: 'App',
+                  data(){
+                    return {
+                      id: 'keyi'    //到时候去数据库查出来的数据
+                    }
+                  }
+                }
+                </script>
+            那么，如何在组件中，拿到路径中携带的参数呢？就是上面的例子，Wanyi组件中如何拿到id值？
+                //修改Wanyi.vue
+                <h3>{{userId}}</h3>     //你也可以直接{{$route.params.id}}
+                export default {
+                name: "Wanyi",
+                  data(){
+                    return {
+                      message: '万一'
+                    }
+                  },
+                  methods: {
+                    say(){
+                      console.log("测试vue-router");
+                    }
+                  },
+                  computed:{    //计算属性
+                    userId(){
+                       return this.$route.params.id //关键
+                    }
+                  }
+                }
+            这个this.$route，是哪个组件被点击，被激活，就是哪个路由,是当前路由，取数据用$route
+            this.$router，是下面这个总的路由对象，是路由实例，传递数据用$router
+                const router = createRouter({
+                  history: createWebHashHistory(),
+                  routes,
+                  // linkActiveClass: 'wanyi'
+                })
+        * 路由的懒加载
+            当打包构建应用时，javascript包会变得非常大，影响页面加载，如果我们能把不同路由对应的组件分割成不同的代码块
+            然后当路由被访问的时候才加载对应组件JS文件，这样就会更加高效
+            路由中通常有很多组件，这些组件通常会被打包成一个js文件，如果组件太多，这个js就会非常大，当用户进入网站时，会花费很长时间
+            甚至出现短暂空白，如何避免呢？使用懒加载，等到激活该组件时，才去加载组件
+            路由懒加载：主要作用就是将路由对应的组件打包成一个个js代码块，只有在这个路由被访问到的时候才加载对应的组件
+            {
+                path: '/about',
+                name: 'About',
+                component: () => import('../views/About.vue')
+            }
+    vue-router嵌套路由
+        比如在home页面，我们希望通过home/news和home/message访问一些内容，一个路径映射一个组件，访问这两个路径也会分别渲染两个组件
+        使用嵌套路由的步骤
+            1)创建对应的子组件，并且在路由映射中配置对应的子路由
+                //创建MyNews.vue,创建MyMessages.vue
+                //1.1MyNews.vue，主要看看template
+                <template>
+                  <div>
+                    <ul>
+                      <li>新闻1</li>
+                      <li>新闻2</li>
+                      <li>新闻3</li>
+                      <li>新闻4</li>
+                    </ul>
+                  </div>
+                </template>
+                //1.2MyMessages.vue，主要看看template
+                <template>
+                  <div>
+                    <ul>
+                      <li>消息1</li>
+                      <li>消息2</li>
+                      <li>消息3</li>
+                      <li>消息4</li>
+                    </ul>
+                  </div>
+                </template>
+                //1.3在路由表中的父组件中配置子路由
+                {
+                    path: '/my',
+                    name: 'My',
+                    component: My,
+                    children: [
+                      {
+                        path: '',   //默认路由
+                        component: ()=> import('../views/MyNews.vue')
+                      },
+                      {
+                        path: 'news',
+                        component: ()=> import('../views/MyNews.vue')
+                      },
+                      {
+                        path: 'messages',
+                        component: ()=> import('../views/MyMessages.vue')
+                      }
+                    ]
+                  }
+            2)在组件内部使用<router-view>标签
+                在父组件中使用标签，My.vue
+                <template>
+                  <div>
+                    <router-link to="/my/news">新闻</router-link>
+                    <router-link to="/my/messages">消息</router-link>
+                    <router-view/>
+                  </div>
+                </template>
+    vue-router参数传递
+        参数传递说的就是组件之间相互传递数据，传递参数主要有两种类型：params和query
+        params类型:
+            * 配置路由格式：/router/:id
+            * 传递的方式：在path后面跟上对应的值
+            * 传递后形成的路径：/router/123，/router/abc，rest风格传参数
+        query类型：
+            配置路由格式：/router，也就是普通配置
+            传递的方式：对象中使用query的key作为传递方式
+            传递后形成的路径：/router?id=123，/router?id=abc
+        params上面已经演示过了，就不演示了，下面代码时使用query类型传递参数
+            * My.vue中
+                <template>
+                  <div>
+                    //传递值时，可以使用route-link的方式，也可以使用代码方式传递参数(使用button代替router-link)，this.$router.push(数据)
+                    <router-link :to="{path: '/my/news',query: {name: '新闻',id: 1}}">新闻</router-link>
+                    <router-link :to="{path: '/my/messages',query: {name: '消息',id: 2}}">消息</router-link>
+                    <router-view/>
+                  </div>
+                </template>
+            * MyNews.vue中
+                <template>
+                  <div>
+                    <ul>
+                      <h3>{{$route.query.id}}</h3>  //取值通过$route
+                      <h3>{{$route.query.name}}</h3>
+                      <li>新闻1</li>
+                      <li>新闻2</li>
+                      <li>新闻3</li>
+                      <li>新闻4</li>
+                    </ul>
+                  </div>
+                </template>
+            * MyMessages.vue中
+                <template>
+                  <div>
+                    <ul>
+                      <h3>{{$route.query.id}}</h3>
+                      <h3>{{$route.query.name}}</h3>
+                      <li>消息1</li>
+                      <li>消息2</li>
+                      <li>消息3</li>
+                      <li>消息4</li>
+                    </ul>
+                  </div>
+                </template>
+    $route和$router的区别
+        $route是当前路由，$router是路由实例
+        所有的组件都继承自vue类的原型，所以全局组件都是vue类的实例
+    vue-router导航守卫
+        导航守卫指的是：当我们从一个组件点击切换到其他组件时，可以拦截这个切换的过程，像拦截器一样的概念，监听组件的切换,在切换的前后中做点事
+        案例：例如我们实现一个需求，当我们切换组件时，将页面的title变成相应的组件名，这里有两种方式实现，第一种使用钩子函数，第二种使用导航守卫
+        * 钩子函数，在组件中使用created属性，该属性值是一个函数，当我们点击切换组件时，被切换的组件被创建，并调用created函数，
+            在该函数中改变页面的title，从而实现我们的需求,所有组件实现created函数，在其中设置document.title属性即可实现需求
+            created() {
+                document.title="home"
+              }
+        * 导航守卫，我们可以利用组件在切换时，必须执行某些函数，才能切换组件这一特性，从而改变title值，代码如下，
+            //路由表index.js
+            const routes = [
+              {
+                path: '/',
+                name: 'Home',
+                component: Home
+              },
+              {
+                path: '/about',
+                name: 'About',
+                //懒加载
+                component: () => import('../views/About.vue')
+              },
+              {
+                path: '/wanyi/:id',
+                name: 'Wanyi',
+                component: Wanyi
+              },
+              {
+                path: '/my',
+                name: 'My',
+                component: My,
+                children: [
+                  {
+                    path: '',
+                    component: ()=> import('../views/MyNews.vue')
+                  },
+                  {
+                    path: '/my/news',
+                    component: ()=> import('../views/MyNews.vue')
+                  },
+                  {
+                    path: 'messages',
+                    component: ()=> import('../views/MyMessages.vue')
+                  }
+                ]
+              }
+            ]
+            const router = createRouter({
+              routes,
+              history: createWebHashHistory()
+              // linkActiveClass: 'wanyi'
+            })
+            router.beforeEach((to,from,next)=>{     //这个to,和from都是一个个route对象，即路由表中的对象
+                document.title=to.matched[0].name;  //使用matched解决组件嵌套问题
+                console.log(to);
+                next();
+            })
+            export default router
+            //利用路由表中对象的name属性，所以可以达到同样的效果
+        导航守卫的补充
+            上面使用导航守卫调用的方法beforeEach，也叫作前置钩子或者前置守卫，就是说在跳转组件之前被调用
+            还有一个后置钩子afterEach，这个函数是在跳转组件之后被调用，而且并不需要next方法，因为已经跳转完毕了，而前置钩子需要主动调用next函数去跳转组件
+            上面这两个函数都是全局守卫，还有路由独享的守卫(路由的beforeEnter等属性)，组件内的守卫(在组件中beforeRouteEnter等等属性)
+    keep-alive
+        keep-alive主要做组件状态保存的，当我们从一个组件切换到另一个组件，如果我们不进行状态保存，那么当我们回退到上一个组件时，会重新加载该组件
+        而如果我们进行状态保存后，当我们回退上一个组件时，会回到原来的状态，例如我们点外卖，在店铺按钮中点击进入一个店铺，然后我们切换到我的信息，
+        此时再点击店铺按钮时，还处于之前的店铺，就说明，之前的状态已经被缓存起来了。
+        keep-alive是vue内置的一个组件，可以使被包含的组件保留状态，或避免重新渲染
+        router-view也是一个组件，是vue-router内置的组件，如果直接被包在keep-alive里面，所有路径匹配到的视图组件都会被缓存
+
+        组件中有两个钩子函数，activated和deactivated函数，当组件被激活时，activated被调用，当切换到其他组件时deactivated被调用
+        前提是，router-view被keep-alive包裹住了，即，使用了缓存，如果不使用缓存，这两个钩子函数不会被调用，切换组件时，调用的是created和destroyed钩子函数
+
+        我们使用keep-alive标签包裹router-view标签后，所有与router-view关联的组件都会被缓存起来，但是我就想这些被缓存起来的组件中，有一个不能被缓存起来
+        这个时候，就需要使用到keep-alive的属性
+            include,字符串或正则表达式，只有匹配的组件会被缓存
+            exclude,字符串或正则表达式，任何匹配的组件都不会被缓存起来
+        像这个需求，是<keep-alive exclude="组件的name属性,组件的name属性"> //可以写多个，用逗号隔开
+        配置好后，则匹配的组件不会被缓存起来
+
+tabbar
+    见tabbar项目
+
+Promise
+    promise的基本使用
+        promise是异步编程的一种解决方案，可以更优雅的写异步请求，避免回调地狱
+        promise中调用resolve函数，就会还行then函数，调用reject函数，就会执行catch函数
+    promise的三种状态，异步操作之后会有三种状态，
+        pending：等待状态，比如正在进行网络请求，或者定时器没有到时间
+        fulfill：满足状态，当我们主动回调了resolve时，就处于该状态，并且会回调.then()，
+            突然发现，组件中我们编写的回调方法是vue来调我们写的方法，而这里调用resolve方法是我们调用别人写的方法
+        reject：拒绝状态，当我们主动回调了reject时，就处于该状态，并且会回调.catch()
+    这里去看廖雪峰的博客，讲的特别好：https://www.liaoxuefeng.com/wiki/1022910821149312/1023024413276544
+    简单的案例：
+        new Promise(resolve=>{
+            setTimeout(()=>{
+                resolve("hello");
+            },1000)
+          }).then((res)=>{
+            console.log("第零次的处理");
+            return new Promise(resolve=>{
+              setTimeout(()=>{
+                resolve(res+" wo")
+              },1000)
+            })
+          }).then((res)=>{
+            console.log('第一次的处理');
+              return Promise.resolve(res+" world")  //对上面进行简化
+          }).then((res)=>{
+            console.log('第二次的处理');
+              return res+" giao"
+          }).then((res)=>{
+            console.log(res);
+          })
+vuex详解，状态管理工具,是vue的插件，所以需要Vue.use(vuex)
+    vuex是一个专为vue应用程序开发的状态管理模式，它采用集中式存储管理应用的所有组件的状态，并以相应的规则保证状态以一种可预测的方式发生变化
+    状态管理是什么：
+        我们可以简单的将其看成把需要多个组件共享的变量全部存储在一个对象里面，然后将这个对象放在顶层的vue实例中，让其他组件可以使用
+        那么多个组件就可以共享这个对象中的所有变量属性了。
+        如果你想通过在vue的原型对象中添加公共对象来实现所有组件共享就太天真了，因为这样虽然实现共享，但是没有实现响应式，即，当一个组件修改共享变量的值
+        其他组件内的数据不会发生变化，而vuex正是解决响应式问题
+    有什么状态需要我们在多个组件间共享的呢？
+        比如用户的登录状态，用户名称，头像，地理位置信息等等，比如商品的收藏，购物车中的物品等等，这些状态信息，我们都可以放在统一的地方
+        对它进行保存和管理，而且它们还是响应式的
+    vuex安装：npm install vuex -S      //-S就等于--save,表示运行依赖，简写而已，同样的-D是--save-dev的简写
+    vuex的使用
+        和router一样，安装好插件后，创建一个index.js，在其中导入vue，vuex依赖，然后注册vuex组件，配置vuex实例，最后导出该实例
+        在main.js中导入配置好的vuex实例，在vue实例中挂载就行。
+        //store/index.js，vuex配置
+        import Vue from 'vue'
+        import Vuex from 'vuex'
+
+        Vue.use(Vuex)
+
+        export default new Vuex.Store({
+          state: {
+          },
+          mutations: {
+          },
+          actions: {
+          },
+          modules: {
+          }
+        })
+        //mian.js，引入vuex，并挂载到vue实例中
+        import Vue from 'vue'
+        import App from './App.vue'
+        import router from './router'
+        import store from './store'
+        /*
+          阻止启动生产消息,没有这句，如果是开发时打包启动程序，会打印大量消息，
+          所以开发时关闭该选项，生成模式时再打开
+         */
+        Vue.config.productionTip = false
+        /*
+          把router，store传递到vue实例中，
+          则相当于Vue.prototype.$store=store
+          Vue.prototype.$router=router
+         */
+        new Vue({
+          router,
+          store,
+          render: h => h(App)
+        }).$mount('#app')
+        /*
+          上面相当于：createApp(App).use(store).use(router).$mount('#app')
+         */
+    vuex的state和mutations的基本使用
+        state和mutations是vuex实例中的属性，我们通过修改state属性来添加共享变量
+        而修改并不是直接修改state中的变量，而是通过mutations属性修改变量，因为直接修改state属性，则我们并不知道是哪个组件修改了共享变量
+        而通过mutations属性修改变量，我们可以通过浏览器的一个插件，可以查看得到是哪一个组件修改了共享变量
+        案例如下:app.vue和helloVuex.vue有相同的变量，放在store的state中，然后app.vue中通过调用mutations中函数去修改state中变量
+            //app.vue
+                <template>
+                  <div id="app">
+                    <h2>{{$store.state.count}}</h2>     //使用共享变量
+                    <button @click="add">+</button>
+                    <button @click="jian">-</button>
+                    <hello-vuex/>
+                  </div>
+                </template>
+                <script>
+                import HelloVuex from './components/HelloVuex';
+                  export default {
+                    name: 'App',
+                    components: {
+                      HelloVuex
+                    },
+                    methods: {
+                      add(){
+                        this.$store.commit("increment");    //修改共享变量
+                      },
+                      jian(){
+                        this.$store.commit("decrement");
+                      }
+                    }
+                  }
+                </script>
+            //helloVuex.vue
+                <template>
+                  <h2>{{$store.state.count}}</h2>
+                </template>
+
+                <script>
+                  export default {
+                    name: "HelloVuex",
+                  }
+                </script>
+            //store/index.js，vuex的配置
+                import Vue from 'vue'
+                import Vuex from 'vuex'
+
+                Vue.use(Vuex)
+
+                export default new Vuex.Store({
+                  state: {
+                    count: 999
+                  },
+                  mutations: {
+                    increment(state){
+                      state.count++;
+                    },
+                    decrement(state){
+                      state.count--;
+                    }
+                  },
+                  actions: {
+                  },
+                  modules: {
+                  }
+                })
+            //main函数导入vuex实例对象，挂载到vue实例中，略
+    vuex核心概念
+        * State，存放共享变量
+            除此之外，还有就是state单一状态树的概念，说的是不推荐创建多个store对象
+            const store = new Vuex.Store(),只需要一个store对象即可，如果在多个store对象中存储数据，则管理维护起来特别困难
+        * Getter，类似计算属性,如果数据是组件自己的数据，并且这个数据要经过一些处理才能输出到页面，则要使用计算属性
+            当这个数据是共享变量时，就使用Getter,对了，计算属性有缓存，这个getter大概率也是有缓存的
+            - 当然除了和计算属性一样使用，你还可以在getter方法中使用其他getter方法，只需要给一个getter参数即可
+                getters:{
+                    //将count相乘
+                    toDouble(state){
+                      return state.count*state.count
+                    },
+                    //将相乘的数再加100
+                    toDoubleAnd100(state,getter){
+                      return getter.toDouble+520
+                    }
+                }
+            - 另一个需要注意的是，这个getter方法，可以返回函数，即闭包，而返回的函数的参数，则可以由外界控制
+                //getter方法，拿到state中的count的值，将该值与调用的值相加，即创建个闭包
+                addYouValue(state){
+                  return function(value){
+                    return state.count+value
+                  }
+                }
+                //调用该getter方法
+                <h2>{{$store.getters.addYouValue(-5)}}</h2>
+                可以想象，既然store的getter可以使用闭包，那么计算属性可以创建闭包，
+                利用了计算属性的调用不需要括号的特性，此时如果带上括号，则就是闭包的使用
+        * Mutations，修改共享变量，向共享变量中传递数据
+            vuex的store状态的更新唯一方式：提交mutations
+            - mutations主要包括两部分：字符串的事件类型(type),一个回调函数，该回调函数的第一个参数就是state
+                //上面例子中，increment就是事件类型，(state)=>{state.count++} 就是回调函数
+                increment(state){
+                  state.count++;
+                }
+            - 我们使用mutations时，还可以传递一个参数给mutations方法中，这个参数被称为是mutations的载荷(payLoad)，
+                //vuex中mutations中方法
+                    become100(state,data){
+                      state.count=data;
+                    }
+                //使用这个方法
+                <button @click="become100">将共享变量变成100</button>
+                methods: {
+                  become100(){
+                    this.$store.commit('become100',100) //当然了，如果传递的参数不止一个，就封装成一个对象传递即可
+                  }
+                }
+            -  mutations提交风格
+                第一种提交风格就是上面的方式
+                    提交时：this.$store.commit('become100',100)
+                    mutations执行时：
+                        become100(state,data){  //这个data就代表100
+                          state.count=data;
+                        }
+                第二种提交风格是传递一个对象
+                    提交时：this.$store.commit({type: 'become100',count: 100})
+                    mutations执行时：
+                        become100(state,data){  //这个data就代表你传递的对象,即{type: 'become100',count: 100}
+                          state.count=data.count;
+                        }
+                    当然如果以第二种方式提交，这个data参数名应该为payload,更加规范专业~
+            - mutations响应规则，响应式就是当数据发生变化的时候，界面发生刷新
+                vuex的store的state是响应式的，当state中的数据发生改变时，vue组件会自动刷新
+                但是这种响应式需要我们遵守一些vuex对应的规则
+                    1)提前在store中初始化好所需的属性
+                    2)当给state中的对象(状态)添加新属性时，使用下面的方式
+                        方式一：使用Vue.set(obj,'newProp',123)，(如果是后来新添加的属性使用该方法，不然数据不会被响应到界面中)
+                            obj.newProp=123,这种方式，不是响应式的！！！即数据改变了，但是界面上不能响应
+                        方式二：用新对象给旧对象重新赋值
+                    3)如果是删除对象属性，不能使用delete obj.oldProp，这种也不是响应式的删除对象属性的方法
+                        你需要使用：Vue.delete(obj,'oldProp')
+                当然了，上面这种规则不仅适用于vuex的store对象，也适用于组件中的对象
+            - mutations常量类型
+                在mutations中，我们定义了很多事件类型(也就是mutations的方法名)，当mutations中方法越来越多时，
+                使用者需要花费大量的精力去记住这些方法，并且还可能敲错，我们可以将这些事件类型定义为常量，放到一个文件中
+                然后再引用这个常量的名字。
+                //引入外部常量文件，再使用常量
+                increment(state){
+                  state.count++;
+                }
+                变成
+                import {INCREMENT} from './xxx/xxx.js'
+                [INCREMENT](state){
+                  state.count++;
+                }
+                不过我感觉更加麻烦了
+        * Action，在其中做异步操作
+            通常情况下，vuex要求我们mutations中的方法必须是同步方法，主要原因是当我们使用devtools时，devtools可以帮助我们
+            捕捉mutations的快照，但是如果是异步操作，那么devtools将不能很好的追踪这个操作什么时候会被完成.
+            action，与mutations类似，但也有不同
+                比如异步操作最好放在action中
+                比如action方法中的方法参数是context，而mutations中方法参数是state，context指的是store对象，
+                    同样的，action的方法参数也可以有两个，用于接收使用者传递的参数，这和mutations类似
+                比如action方法中不能修改state中的共享变量，只能通过调用mutations中的方法修改变量，context.commit('mutations中的方法')
+                比如使用者在调用action中方法时：this.$store.dispatch('action中方法名','携带的信息')，而mutations使用的是commit方法
+                比如action方法中的异步操作可以返回Promise对象，如果使用了promise，使用者在调用action方法时可以跟上.then()方法
+                    这个then方法可以用来判断异步操作是否成功。
+            action中使用promise案例：
+                //store/index.js，action中
+                actions: {
+                    asyncTest(context,message){
+                      return new Promise(resolve=>{
+                        setTimeout(()=>{
+                          console.log(message);
+                          context.commit('increment')
+                          resolve("异步操作完成")
+                        },1000)
+                      });
+                    }
+                  }
+                //组件内，使用action中方法
+                <button @click="asyncTest">测试异步</button>
+                methods: {
+                  asyncTest(){
+                    this.$store
+                    .dispatch('asyncTest',"正在执行异步操作")
+                    .then((res)=>{
+                      console.log(res);
+                    })
+                  }
+                }
+        * Module
+            当应用变得非常复杂时，store对象就有可能变得相当臃肿，为了解决这个问题，vuex允许我们将store分割成模块
+            而每个模块拥有自己的state,mutations，actions，getters
+            但是呢，模块中定义的state，使用者在使用时还是有些区别的，
+            例如，
+                没有使用模块，取值时：$store.state.name
+                使用了模块:
+                    //index.js，vuex配置，在store实例的module中定义a模块
+                    modules: {
+                        a: {
+                          state: {
+                            name: '万一'
+                          }
+                        }
+                     }
+                     //使用者取值时：<h2>{{$store.state.a.name}}</h2>，需要选择哪个模块
+                使用了a模块后，a模块整体会被放在store实例的state中，所以要state.a.name
+                而调用a模块中的mutations，actions,getter,仍然还是原来的调用方式(调用使用方式是相同的)
+                因为他们都还是放到store的mutations，actions,getter中，所以模块中的这三个，最好不要与store中这三个重名
+                如果重名，则使用者在调用时，会先执行store中的，然后执行模块中的！
+            注意啦，我们模块中的getters和store实例中的getters还是有些不同的，不同点在于，模块中的getters还可以接收第三个参数
+                这个参数代表store实例中的state，你可以给这个参数取名为rootState，表示模块中能拿到store实例的state中的共享变量
+            再次注意啦，模块中actions方法中的参数context和store的actions方法参数context还是不一样的，context表示上下文
+                是会随着改变的，不同之处在于，模块中actions的context参数调用commit方法只能调用模块内的mutations，
+                而不能调用store实例的mutations中的方法，但是模块中actions的context中可以拿到RootGetters,RootState,
+                表示可以调用store实例中的state内变量和getters中的方法。
+    vuex的文件组织
+        目前我们的配置全是放在store中的index.js中，我们可以将store实例中的getter，actions，modules，mutations全部抽离出来
+        除了state不抽取成js文件外，其他配置全部抽取成js文件，使用es6的导入导出配置，需要注意的是抽取的modules可能会有很多个
+        所以抽取的modules最好放在store/modules/moduleA.js，创建个modules目录放在其中最好。
+网络封装axios，js的模块，不需要Vue.use()进行注册
+    vue中发送网络请求有非常多的方式
+        1)传统的ajax是基于XMLHttpRequest(XHR),但是在开发中并不使用，太繁琐
+        2)Jquery-Ajax代替传统的ajax，这是以前的情况，但是vue项目中，vue本身1W+行，Jquery-Ajax也是1w+行
+            所有完全没必要为了用网络请求就引用这个重量级框架，目前三大框架都有自己的网络请求模块，所以都不使用Jquery-Ajax
+        3)vue-resource,是vue1.0时vue官方推出的网络请求框架，但在vue2.0时被淘汰了，官方选择了axios
+        4)还有一种，应该说是一种请求方式，而不是网络请求框架，jsonp
+            使用jsonp最主要的原因往往是为了解决跨域访问的问题，不过只能解决get方式的跨域访问
+            jsonp的核心在于通过<script>标签的src来帮助我们请求数据，原因是我们项目部署在domain1.com时
+            是不能直接访问domain2.com服务器上的资料的，这个时候，我们利用<script>标签的src帮助我们去服务器请求到数据
+            将数据当做一个javascript的函数来执行，并且执行的过程中传入我们需要的json，所以封装jsonp的核心就在于我们
+            监听window上的jsonp进行回调时的名称。
+            jsonp的方式是请求时url后跟上一个callback参数，该参数值就是需要返回的函数名，后端数据响应的是一个js函数，函数名就是请求时携带的callback值
+            函数的参数就是后端响应的数据，前端通过script标签的src发送请求，请求完成后，就可以使用这个数据。
+        5)axios
+            功能特点：在浏览器中发送XMLHttpRequests请求(AJAX)，在node.js中发送http请求(jquery-ajax不可)，支持Promise API
+            拦截请求和响应，转换请求和响应数据
+    axios请求方式
+        1)axios(config)，默认情况下，如果只有url，则请求方式是get，设置method可以设置请求方式
+        2)axios.request(config)
+        3)axios.get(url[,config])
+        4)axios.delete(url[,config])
+        5)axios.head(url[,config])
+        4)axios.post(url[,data[,config]])
+        4)axios.put(url[,data[,config]])
+        4)axios.patch(url[,data[,config]])
+    axios的基本使用
+        1)安装axios
+            npm install axios -S
+        2)main.js中
+            import axios from 'axios'
+            //配置url前缀，该路径会替换http://localhost:8080/，即替换本地的url前缀，用来配合跨域
+            axios.defaults.baseURL ='/home';    //配置默认的请求前缀，这里的前缀配置所有请求都会生效，即所有请求走代理
+            axios({
+              url: "/api.php",  //如果没有指定method属性，则默认使用get请求，这里直接跟baseURL后面的地址即可
+              params: {
+                key: 'free',
+                appid: 0,
+                msg: '你好吗'
+              }
+            }).then(res=>{      //axios内部返回了promise，所以这里调用then方法，拿到返回结果
+              console.log(res);
+            })
+        3)vue.config.js中配置跨域
+            module.exports = {
+              devServer: {
+                proxy: {
+                  '/home': { //请求的代称，写在Axios里的BaseUrl
+                    target: 'http://api.qingyunke.com', // 真实请求URl
+                    ws: true,   //用于支持websocket
+                    changeOrigin: true, // 允许跨域
+                    pathRewrite: {  //真实请求路径中和请求代称重名的话，使用路径重写进行配置
+                      '^/home': '' //当你的接口中没有/home字眼时，采用这种，直接替换成空即可
+                          // '^/home': '/home'   //当你的接口中刚好有/home 时，采用这种方式
+                    }
+                  }
+                }
+              }
+            }
+        以上就是axios基本使用，包括跨域的配置
+    axios发送并发请求
+        发送两个请求，两个请求都拿到结果再去做其他事情，案例如下，估计内部也是使用了promise的all方法
+        axios.all([
+            axios({
+              url: "/home",
+              params: {
+                key: 'free',
+                appid: 0,
+                msg: '你叫什么名字'
+              }
+            }),
+            axios({
+              url: "/home",
+              params: {
+                key: 'free',
+                appid: 0,
+                msg: '杭州天气怎么样'
+              }})
+          ]).then(res=>{
+          console.log(res);
+        })
+    axios全局配置
+        全局配置指的是，抽离请求中的一些固定部分，例如，请求前缀(协议+域名+端口号),请求头设置一些固定值等等
+        原始配置：
+            axios({
+              url: "http://api.qingyunke.com/api.php",
+              timeout: 5000,  //超时时间
+              params: {       //请求参数
+                key: 'free',
+                appid: 0,
+                msg: '你好吗'
+              }
+            }).then(res=>{
+              console.log(res);
+            })
+        配置抽离：
+            axios.defaults.baseURL ='http://api.qingyunke.com/api.php'  //这里配置的是全局，你也可以在axios内部配置baseURL
+            axios.defaults.timeout=5000
+            axios({
+              url: "/",
+              params: {       //请求参数
+                key: 'free',
+                appid: 0,
+                msg: '你好吗'
+              }
+            }).then(res=>{
+              console.log(res);
+            })
+        那么，axios中传入的config对象中除了以上url,param,baseURL,timeout属性外，还可以有哪些属性
+            [重要]请求地址：url: '/user'
+            [重要]请求类型：method: 'get'
+            请求根路径：baseURL: 'http://www.keyi.world'
+            请求前的数据处理：transformRequest: [function(data){}]   //可以传入多个函数
+            请求后的数据处理：transformResponse: [function(data){}]
+            [重要]自定义的请求头：headers:{'x-Request-With':'XMLHttpRequest'}
+            [重要]URL查询对象：params:{id:12}      //就是url携带的参数
+            查询对象序列化函数：paramsSerializer: function(params){}
+            [重要]request body：data:{key:'aa'}
+            超时设置：timeout:1000
+            跨域是否带token：withCredentials:false
+            自定义请求处理：adapter:function(resolve,reject,config){}
+            身份验证信息：auth:{uname:'',pwd:'12'}
+            响应式的数据格式：responseType:'json'   //有json/blob/document/arraybuffer/text/stream
+    axios的实例
+        为什么要创建axios的实例呢？
+            当我们从axios模块中导入对象后，使用的实例是默认的实例，当给该实例设置一些默认配置时，这些配置就被固定下来了
+            但是后续开发中，某些配置可能会不太一样，比如某些请求需要使用特定的baseURL或者timeout或者content-type等
+            这个时候，我们就可以创建新的实例，并且传入属于该实例的配置信息
+            简而言之，不同的请求需要不同的配置，我们之前使用的都是默认的axios实例，所以现在我们需要创建新的axios实例
+        创建axios实例去发送请求，每个axios对应不同的配置，下面是一个简单的案例
+            //这里配置的/home相当于axios.defaults.baseURL = '/home'，而我又配置了跨域设置，这里的/home相当于http://api.qingyunke.com
+            let axiosInstance = axios.create({      //这里的axiosInstance是一个axios实例，保存配置的
+              baseURL: '/home',
+              timeout: 5000
+            });
+            axiosInstance({         //使用对应的配置实例来发送网络请求，做到请求配置和实际请求的分离
+              url: "/api.php",
+              params: {
+                key: 'free',
+                appid: 0,
+                msg: '江西省九江市彭泽县'
+              }
+            }).then(res=>{
+              console.log(res);
+            })
+    代码规范
+        如果我们的组件依赖某个第三方框架，我们最好在main.js入口函数中全局注册一下，例如组件使用axios，
+        最好不要每个组件都import导入axios模块，而是在main.js中，Vue.prototype.$axios=axios，来全局注册
+        这样我们其他组件可以通过this.$axios得到axios的对象，因为组件都是Vue构造函数的实例，也就继承了Vue原型对象的变量和方法。
+        另外，需要说明的是上面这种做法其实组件还是没有和axios框架分离，因为组件内还是使用了this.$axios，所以一般开发中
+        都会再对axios做一层封装，让我们的组件依赖我们自己的封装后的对象，这样，当我们将axios换成其他框架时，我们只需要更改自己封装的内容
+        而不需要修改组件！
+    按照代码规范，对axios进行封装
+        1)src下创建network目录，其中再创建request.js文件，该文件内容如下：
+            import axios from 'axios'
+            export function request(config) {
+              //创建一个axios实例
+              let axiosInstance = axios.create({        //这个对象感觉可以抽离，让使用者配置，但是也可以在本js文件中创建多个函数
+                baseURL: '/home',
+                timeout: 5000
+              });
+              //发送网络请求
+              return axiosInstance(config)    //本身返回的就是promise
+            }
+            之所以不用默认导出，是因为，可能你会有多个函数，每个函数有不同的axios实例去使用，如果默认导出，则只能导出一个
+    axios的拦截器
+        axios提供了拦截器，用于我们在每次发送请求之前或者得到响应后，进行相应的处理，
+        下面是拦截器案例，也一并放到封装的axios中去了
+        import axios from 'axios'
+        export function request(config) {
+          //1，创建一个axios实例
+          let axiosInstance = axios.create({
+            baseURL: '/home',
+            timeout: 5000
+          });
+          //2，配置拦截器
+          //请求拦截，有两个回调函数，请求成功函数，请求失败回调函数
+          axiosInstance.interceptors.request.use(config=>{
+            console.log("发送请求之前执行");
+            /*
+              请求拦截器使用场景：
+                  * 比如config中的一些信息不符合服务器的要求
+                  * 比如每次发送网络请求时，都希望在界面中显示一个请求图标
+                  * 某些网络请求需要token，必须携带一些特殊的信息，在这里可以添加到请求头中
+             */
+            return config;      //拦截器放行，不然响应就会失败(不放行代表请求失败)，这个函数会在请求之前执行
+          },err=>{
+            console.log("3");   //这里一般只要不是网络原因，都很少来到这里，这里指的是发送请求发布出去，如果是错误url,还是可以发送的出去的
+            console.log(err);   //如果请求失败，则打印错误信息
+          })
+          //响应拦截，响应成功回调函数，响应失败回调函数
+          axiosInstance.interceptors.response.use(res=>{
+            console.log("2");
+            return res;   //响应成功后不放行的话，使用者的then方法将拿不到响应的数据，所以需要将响应数据放行
+          },error => {
+            console.log("4");
+            console.log(error); //如果响应失败，则打印错误信息，也可能是请求不放行导致的
+          })
+          //3，发送网络请求
+          return axiosInstance(config)    //本身返回的就是promise
+        }
+
+
+vue的响应式原理(双向绑定原理)
+/*
+    1，app.message修改数据，vue内部是如何监听message数据的改变？
+    2，当数据发生改变，vue是如何知道要通知哪些DOM，界面发生刷新？
+    怎么监听到数据发生改变的，怎么通知界面中部分元素刷新数据
+    通过Object.defineProperty,监听数据发生改变
+    通过发布订阅者模式通知相应的元素刷新数据
+    
+    message定义在data里被touch到时，会生成getter和setter方法，然后使用到message的地方会对应生成watcher，被放到dep容器里
+    当message发成改变时，会遍历通知message对应dep里的所有watcher，去调用他们的update方法进行更新
+*/
+
+
+idea将项目同步到远程仓库
+    1)创建远程仓库
+    2)在项目目录下：git remote add origin 远程仓库地址
+    3)git push -u origin master

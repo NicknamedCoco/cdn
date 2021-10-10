@@ -1,0 +1,1296 @@
+老规矩，定个看网课的小目标，看它个一个亿
+  9月26看到60，完成
+  9月27看到69，完成
+  9月28看到83，完成
+  9月29看到95，完成
+  9月30-10月1号，看到116,失败
+  10月2号，看到135，这其中是路由知识，跳着看吧，失败
+  10月3号，看到148，失败，看到135
+  10月4号，看到160
+  10月5号，看到168，终点
+  6号，7号写博客，实在太赶就最多脱到10号，全面结束vue
+  10月7号之后开始spring cloud
+  今天10月7号，网课看完，但笔记，博客没写，新的任务已经出现:10月10号搞定js，vue所有博客
+  所有人员迅速准备战斗！！！
+
+初始vue
+  vue实例管理的div被称为root容器，root容器里的代码被称为vue模板
+  vue模板中包含一些js语法代码有：插值语法和指令语法，
+  插值语法：{{}}用于解析标签体内容，指令语法：用于解析标签属性，标签体内容，绑定事件。。。
+  真实开发中只有一个vue实例，并且会配合着组件一起使用
+  vue中有两种绑定方式：单向绑定(v-bind)，双向绑定(v-model)
+
+el的两种写法和data的两种写法
+  el属性用于指定vue实例挂载到哪个div中，还可以使用$mount("#app")代替el
+  data属性除了是对象，在组件中data属性是一个函数，函数是有单独的作用域，多个组件实例时，数据就不会被共享
+
+数据代理
+  vue实例的data属性值中的数据，可以在vue模板中直接通过{{message}}获取，原因是vue代理了data中的数据，使得可以直接访问到data中数据
+  这被叫做数据代理，即vue模板从vue实例中就可以拿到data中的数据，不仅可以拿到data数据，还可以拿到vue实例其他属性以及vue原型上的所有属性
+  Object.defineProperty
+    vue底层数据劫持，数据代理，计算属性都用到这个方法，下面是简单的使用：
+    <script>
+      let person = {
+        name: 'wanyi',
+        age: 23
+      }
+      let data = 'Superman'
+      Object.defineProperty(person,'sex',{
+        // value: 'man',       //value和writable不能和get函数一起使用，因为不知道去拿value的还是getter的值，冲突
+        enumerable: true,   //控制属性是否可以枚举(遍历),默认值是false
+        // writable: true,     //控制属性是否可以被修改，默认值是false
+        configurable: true,  //控制属性是否可以被删除，默认值是false
+
+        //当有人读取person的sex属性时，get函数(getter)就会被调用，且返回值就是sex的值
+        get() {
+          return data;
+        },
+        //当有人修改person的sex属性时，set函数(setter)就会被调用，且会收到修改的具体值
+        set(value){
+          console.log(value);
+          data=value; //如果没有这行，则通过person.sex='woman'修改sex时，data值不会改变。
+        }
+      });
+      console.log(person)
+
+      /*
+      * data对象和person对象本来是两个对象，但是借助Object.defineProperty方法使得两个对象有了关联
+      * 数据代理：通过一个对象的属性代理另一个对象的操作(读/写)
+      * */
+    </script>
+  vue中的数据代理
+    我们在创建vue实例，给了一个options对象，将数据放在该对象的data属性中，之后vue实例会将该data中数据复制到vue实例的_data属性中
+    vue实例属性的_data属性和options对象的data属性，两个对象存在数据劫持，数据劫持是实现数据代理的一种技术。数据劫持和数据代理在有些人觉得是同一个意思。
+    通过Object.defineProperty方法，为属性增加get，set，对已有对象的属性值的读取，修改进行拦截，正是数据劫持，数据代理的说法是同一个东西，不同角度看
+    我们只需要通过vm.name，vm.age就能访问到_data中的数据，这里就是做了一层数据代理，数据代理使得将_data中的数据直接作为了vue实例的属性
+    数据代理方便了我们使用数据，例如：我们直接{{name}}就能获取到name的值，不做数据代理，就需要{{_data.name}}，这在使用上就很不方便
+
+事件中注意点
+  methods中配置的函数，不要用箭头函数，否则this就不是vue实例了
+  methods中配置的函数，都是被vue所管理的函数，this的指向是vue实例或组件实例对象
+  事件分为事件捕获阶段和事件冒泡阶段，事件捕获阶段是由外到内的，事件冒泡是由内向外执行的。
+  常用的事件修饰符：prevent(阻止默认事件，例如点击超链接不跳转)，stop(阻止事件冒泡)，once(只执行一次事件)
+  事件@keyup等等，除了可以写上事件修饰符：@keyup.prevent，还可以写上别名：@keyup.enter,表示按下确认键时才执行对应的事件函数
+  类似enter表示确认键的别名，还有下面这些
+    别名        含义
+    delete      删除
+    esc         退出
+    space       空格
+    tab         换行
+    up          上
+    down        下
+    left        左
+    right       右
+    使用事件别名后，只有按下别名对应的键才会执行事件函数
+
+
+监视属性
+  1，监视属性的基本使用：
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+            message:'加油!'
+        },
+        //监视属性第一种写法
+        watch: {
+          message: {
+            //初始化时让handler调用一下，oldvalue是undefined
+            immediate: true,
+            //newValue:message改变后的值，oldValue:改变之前的值
+            handler(newValue,oldValue){
+              console.log(newValue,oldValue);
+            }
+          }
+        }
+      });
+
+      //监视属性第二种写法
+      app.$watch('message',{
+        //immediate: true,
+        handler(newValue, oldValue) {
+          console.log(newValue,oldValue);
+        }
+      })
+    </script>
+  2，深度监视
+    <div id="app">
+      <span>{{message}}</span>
+      <button @click="number.a++">增加a</button>
+      <button @click="number.b++">增加b</button>
+    </div>
+
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+          message:'加油!',
+          number: {
+            a: 1,
+            b: 2
+          }
+        },
+        watch:{
+          number:{
+            deep: true,   //开启深度监视配置项，如果没有，则监视整个number对象改变，有了deep则监视number中所有属性的变化
+            handler(newValue,oldValue){
+              console.log("number中任一属性发生了变化")
+            }
+          }
+        }
+      });
+    </script>
+  3，监视的简写形式
+    当监视属性时不需要其他配置项，比如deep，immediate等等，则你可以使用简写方式，简写有两种方式：
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+          message:'加油!',
+
+        },
+        watch:{
+          //简写的第一种方式
+          message(newValue,oldValue){
+            console.log("message改变了");
+          }
+        }
+      });
+
+      //简写的第二种方式，直接使用handler函数，不需要像之前一样给个对象
+      app.$watch('message',function(newValue,oldValue) {
+        console.log("message改变了");
+      })
+    </script>
+    注意：事件函数，计算属性方法，监视的方法，都不能写成箭头函数，这些函数都属于vue管理，
+    如果写成箭头函数则其中的this是window对象，而不是vue实例对象
+  4，watch和computed的区别
+    1)computed能完成的功能，watch都可以完成
+    2)watch能完成的功能，computed不一定能完成，例如：watch可以进行异步操作
+    两个重要的小原则：
+      1)所被vue管理的函数，最好写成普通函数，这样this指向才是vm(vue实例),或组件实例对象
+      2)所有不被vue所管理的函数(定时器的回调函数，ajax的回调函数，Promise的回调函数，这些都是浏览器异步组件调用，不归vue管理)
+        最好写成箭头函数，这样this的指向才是vm或组件实例对象。
+
+绑定class样式的三种方式
+  1)字符串写法，适用于：样式的类名不确定，需要动态指定
+  2)数组写法，适用于：要绑定的样式个数不确定，名字也不确定
+  3)对象写法，适用于：要绑定的样式个数确定，名字也确定，但要动态决定用不用
+  下面是一个案例对应上面的3种方式：
+    <style>
+      .a{
+          width: 100px;
+          height: 100px;
+          background-color: #0e90d2;
+      }
+      .b{
+          width: 100px;
+          height: 100px;
+          background-color: #3ca1ff;
+      }
+      .c{
+          width: 100px;
+          height: 100px;
+          background-color: #9acfea;
+      }
+    </style>
+    <body>
+    <div id="app">
+        <div :class="bgColor" @click="changeColor1">字符串方式</div>
+        <div :class="colorArr" @click="changeColor2">数组方式</div>
+        <div :class="colorObj" @click="changeColor3">对象方式</div>
+    </div>
+
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+          bgColor: 'a',
+          colorArr: ['a','b','c'],
+          colorObj: {
+            a:false,
+            b:false,
+            c:false
+          }
+        },
+        methods: {
+          //字符串方式
+          changeColor1(){
+            let colors =['a','b','c'];
+            //随机取数组中样式
+            this.bgColor=colors[Math.floor(Math.random()*3)]
+          },
+          //数组方式
+          changeColor2(){
+            this.colorArr.pop();
+          },
+          //对象方式
+          changeColor3(){
+            this.colorObj.a=true
+            this.colorObj.b=true
+            this.colorObj.c=true
+          }
+        }
+      });
+    </script>
+    </body>
+
+绑定style的两种方式
+  对象方式，数组方式，下面是一个案例：
+  <div id="app">
+    <span :style="styleObj">{{message}}</span>
+    <span :style="styleArr">{{message}}</span>
+  </div>
+
+  <script>
+    let app = new Vue({
+      el: '#app',
+      data: {
+        message:'加油!',
+        //对象语法
+        styleObj: {
+          color: 'red',
+          fontSize: '30px'
+        },
+        //数组语法
+        styleArr: [
+          {
+            color: 'blue',
+            fontSize: '50px'
+          },{
+            backgroundColor: 'orange',
+          }
+        ]
+      }
+    });
+  </script>
+
+v-for中key的原理
+  给遍历的标签加上key，表示标签的唯一性，会影响到diff算法，diff算法指的是虚拟DOM对比算法，将之前的虚拟DOM和之后的虚拟DOM进行对比
+  vue会根据数据生成虚拟DOM保存在内存中，然后根据虚拟DOM创建真实DOM放入到DOM树中，
+  当数据发生改变后，会重新生成新的虚拟DOM，通过比较两个虚拟DOM的差异来判断哪些数据需要生成新的真实DOM，哪些数据直接使用原有的真实DOM，以便提高效率
+  这个比较的算法正是diff算法，我们通过给标签一个key，则在比较时，新虚拟DOM会找到带有相同key的旧虚拟DOM进行比较，比较内部的差异，
+  如果不同，则创建新的真实DOM，如果相同，则取之前旧虚拟DOM生成的真实DOM进行复用，如果key为index,且新的数据打断了index的顺序，
+  则新虚拟DOM根据索引找到错误的旧虚拟DOM，导致创建很多本可以复用的新真实DOM，导致效率降低。
+
+计算属性的案例
+  <div id="app">
+    <input type="text" v-model="keyWord">
+    <button @click="sortType=1">升序排序</button>
+    <button @click="sortType=2">降序排序</button>
+    <button @click="sortType=0">保持不变</button><br>
+    <ul>
+      <li v-for="p in filteredArr" :key="p.id">
+        {{p.name}} - {{p.age}} - {{p.sex}}
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    let app = new Vue({
+      el: '#app',
+      data: {
+        keyWord: "",
+        sortType: 0,
+        persons: [
+          {name: '周杰伦',age: 30,id: '001',sex: '男'},
+          {name: '马冬梅',age: 18,id: '002',sex: '女'},
+          {name: '周冬雨',age: 25,id: '003',sex: '女'},
+          {name: '胡歌',age: 35,id: '004',sex: '男'}
+        ]
+      },
+      computed: {
+        filteredArr(){
+          let arr = this.persons.filter((a)=>{
+              return a.name.indexOf(this.keyWord)!==-1  //keyWord等于0时，也存在字符串中，返回值是0
+          })
+          arr.sort((a,b)=>{
+            if (this.sortType){
+              return this.sortType === 1 ? a.age-b.age:b.age-a.age
+            }
+          })
+          return arr;
+        }
+      }
+    });
+  </script>
+
+Vue监测数据的原理
+  通过Object.definedProperty对data中所有属性进行监测
+  Vue.set()和vm.$set(),可以新增一个属性，并且该属性是响应式的，vm是vue实例，不过这两个方法在vue3中都弃用了
+  这两个方法只能给data中某个对象追加属性，而不能给data对象追加属性
+  如果直接给data中对象新增属性就需要借助这两个方法，不然新增的方法不是响应式的，另外直接给data中数组的元素修改，也不能实现响应式，需要通过push等方法
+  下面是网课总结：
+    Vue监视数据的原理：
+      1，vue会监视data中所有层次的数据
+      2，如何监测对象中的数据？
+        通过setter实现监测，且要在new Vue时就传入要监测的数据
+        1)对象中后追加的属性，Vue默认不做响应式处理     //vm.data.obj.xxx
+        2)如需给后添加的属性做响应式，请使用如下API
+          Vue.set(target,propertyName/index,value)或
+          vm.$set(target,propertyName/index,value)
+      3，如何监测数组中的数据？
+        通过包裹数组更新元素的方法实现，本质就是做了两件事：
+        1)调用原生对应的方法对数组进行更新
+        2)重新解析模板，进而更新页面
+      4，在Vue修改数组中的某个元素一定用如下方法：
+        1)使用这些API，push(),pop(),shift(),unshift().splice(),sort(),reverse()
+        2)Vue.set(),vm.$set
+      特别注意：Vue.set和vm.$set不能给vm或vm的根数据对象(vm._data)添加属性，就是不能给data直接加属性，新增属性要放在data属性的属性值中。
+
+过滤器
+  第三方库：
+    Moment.js是一个JavaScript日期处理类库，用于解析、检验、操作、以及显示日期。
+    Day.js 是一个轻量的处理时间和日期的 JavaScript 库，和 Moment.js 的 API 设计保持完全一样.
+    使用Day.js可以根据时间戳转成相应格式的时间，和jquery一样使用，安装：npm install dayjs --save
+  定义：对要显示的数据进行特定格式化后再显示(适用于一些简单逻辑处理)
+  语法：
+    1，注册过滤器：Vue.filter(name,callback)或new Vue({filters:{}})
+    2，使用过滤器：{{xxx | 过滤器名}} 或 v-bind属性="xxx | 过滤器名"
+  备注：
+    1，过滤器也可以接收额外参数，多个过滤器也可以串联
+    2，并没有改变原本的数据，而是产生新的对应的数据
+  听说在vue3中移除了过滤器
+  下面是一个过滤器案例：
+    <div id="app">
+      <h3>当前时间戳：{{nowTime}}</h3>
+      <h3>当前时间，格式1：{{nowTime | change()}}</h3>
+      <h3>当前时间，格式2：{{nowTime | change("YYYY/MM/DD hh:mm:ss")}}</h3>
+      <h3>当前时间，格式3：{{nowTime | change("YYYY/MM/DD hh:mm:ss") | change2}}</h3>
+      <h3>当前时间，格式4：{{nowTime | change("YYYY/MM/DD hh:mm:ss") | change2 | change3}}</h3>
+    </div>
+
+    <script>
+      //全局过滤器
+      Vue.filter('change3',function(t3) {
+        return t3.substring(0,4);
+      })
+
+      let app = new Vue({
+        el: '#app',
+        data: {
+          nowTime: Date.now()
+        },
+        //局部过滤器
+        filters: {
+          /*
+            value指的是管道符传递过来的参数，str是过滤器调用时传递的参数，如果没传，则使用默认值格式化时间戳
+           */
+          change(value,str="YYYY-MM-DD HH:mm:ss"){
+            return dayjs(value).format(str);
+          },
+          //多个过滤器串联使用
+          change2(t2){
+            return t2.substring(0,10)
+          }
+        }
+      });
+    </script>
+
+自定义指令
+  1，指令就是代替了我们对DOM的操作，现在我们来实现一个指令，标注在标签上就能显示一些数据：
+    <div id="app">
+      <span v-wanyi></span>
+    </div>
+
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+        },
+        directives: {
+          //指令何时会被调用？1，指令与元素成功绑定时(一上来，第一次时)，2，指令所在的模板被重新解析时(data数据发生改变)
+          wanyi(element,banding){
+            element.innerText='万一的秃头时光';
+          }
+        },
+      });
+    </script>
+  2，使用对象式定义自定义指令v-waner，使用在input标签上，并可以获取到value，并且一上来就可以获取input的焦点focus
+    <div id="app">
+      <span v-wanyi="n"></span>
+      <hr>
+      <input v-waner="n"/>
+      <hr>
+      <button @click="n++">点击n+1</button>
+    </div>
+
+    <script>
+      let app = new Vue({
+        el: '#app',
+        data: {
+          n: 1
+        },
+        directives: {
+          wanyi(element,banding){           //函数式实现自定义指令时，这个函数相当于bind+update
+            element.innerText=banding.value;
+          },
+          waner: {
+            //指令与元素成功绑定时(一上来，第一次时)
+            bind(element,banding){
+              element.value=banding.value
+            },
+            //指令所在元素被插入页面时，mounted的时间差不多
+            inserted(element,banding){
+              element.focus()       //focus方法必须在DOM被挂载之后才能执行，所以只能用对象方式实现这个功能
+            },
+            //指令所在的模板被重新解析时(data数据发生改变)
+            update(element,banding){      //update逻辑与bind逻辑一样
+              element.value=banding.value
+            }
+          }
+        },
+      });
+    </script>
+  3，自定义指令上的一些坑
+    1)因为html模板不支持大小写，所以你的指令名不能有大写，使用-表示驼峰，并且在自定义指令函数名上使用字符串包裹函数名
+      比如在上面的例子上，将wanyi，如果写成wanYi,肯定会报错的，你可以写成下面这种形式：
+      //使用：
+      <span v-wan-yi="n"></span>
+      //定义自定义函数，因为有-，所以用''包裹，因为对象的key都是字符串
+      'wan-yi'(element,banding){
+        element.innerText=banding.value;
+      }
+    2)指令中函数，里面的this都是window，不是vue，所以想访问vue中的data数据，只能通过banding参数
+  4，全局指令
+    Vue.directive('指令名',function(){}) //函数式
+    Vue.directive('指令名',{}) //对象式
+    全局指令的创建和全局过滤器的创建类似，在多个vue实例中可以使用
+
+生命周期函数
+  生命周期函数中的this都是vue实例或者组件实例对象
+  create，mounted生命周期函数只执行一次
+  this.$destroy()方法销毁vue实例
+  所有在beforeDestroy函数中更改数据，都不会触发页面更新，只要进入这个钩子函数，下一步就是destroyed函数，没有回头路了
+  具体笔记：
+    常用的生命周期钩子：
+      1)mounted:发送ajax请求，启动定时器，绑定自定义事件，订阅消息等初始化操作
+      2)beforeDestroy:清除定时器，解绑自定义事件，取消订阅消息等收尾工作
+    关于销毁vue实例：
+      1)销毁后借助vue开发者工具看不到任何信息
+      2)销毁后自定义事件会失效，但原生DOM事件依然有效
+      3)一般不会在beforeDestroy操作数据，因为即便操作数据，也不会再触发更新流程了。
+
+组件中的内容
+  关于VueComponent:
+    我们的组件都是VueComponent的实例对象，从这句话中，你可以知道，VueComponent是构造函数，
+    通过const wanyi = Vue.extends({options}),创建一个wanyi组件，你也可以通过const wanyi2 ={options}，直接创建组件对象
+    当wanyi2被挂载到其他组件上时，会自动调用Vue.extends方法，这个extends方法中，会创建VueComponent构造函数并传递你写的配置项
+    所以，wanyi,wanyi2都是VueComponents构造函数，并且因为是闭包创建的，这两个构造函数并不相同，当我们挂载后，使用组件标签后<wanyi/> <wanyi2></wanyi2>后，
+    vue会解析模板中的组件标签，分别创建两个VueComponent实例对象，记住，这两个实例对象是不一样的
+
+  vue实例中的$children中存放着组件的实例对象
+
+  我们的组件实例对象是vueComponent构造函数创建的，又因为Vue.prototype.$xxx = xxx后，我们在所有组件中都可以能拿到this.$xxx
+  说明vueComponent的原型对象与vue实例对象同等地位，相当于一个vue实例对象，但不是，并不是说vueComponent的原型对象就是vue实例对象
+  一个重要的内置关系：VueComponent.prototype.__proto__===Vue.prototype，
+  这段代码，表示：组件的原型对象是和vue实例一样，都指向vue的原型对象，目的：让组件实例对象可以访问到vue原型上的方法，属性
+
+render函数
+  我们在使用vue脚手架创建vue项目的时候，可能让你选择runtimeCompiler与runtimeOnly两种构建项目方式，
+  runtimeCompiler方法构建的vue项目允许你在app.vue中使用template属性，这种方式构建的项目。项目中引用的vue内部包括了vue核心+模板解析器
+  模板解析器就是专门用来解析app.vue中的template属性的，包含模板解析器的vue被称为完整版的vue，当我们输入import Vue from 'vue'时
+  它引入node_modules/vue/dist/vue.js，这个文件就是完整版的vue文件，当使用webpack打包vue项目时，自然是把vue包含的模板解析器打包了
+
+  而如果使用runtimeOnly方式构建项目，则使用render函数代替template属性
+  项目中使用的vue，它引入的vue文件是node_modules/vue/dist/vue.runtime.esm.js,
+  这个vue文件不包含模板解析器，所以当这个项目被webpack打包后，要比runtimeCompiler方法构建的vue项目打包后，小大概10KB，
+  render函数本质就是用来创建app标签元素的，作用和template一样
+
+  总结：如果你的项目app.vue中需要使用template属性，使用runtimeCompiler方式构建项目
+  如果你的项目app.vue中使用render函数，则使用runtimeOnly方式构建项目
+
+ref属性
+  1)被用来给元素或子组件注册引用信息(id的替代者)
+  2)应用在html标签上获取的是真实DOM元素，应用在组件标签上获取的是组件实例对象
+  3)使用方式
+    打标识：<h1 ref="xxx">.....</h1>，或者<School ref="xxx"></School>
+    获取：this.$refs.xxx
+
+有哪些$xxx
+  $mount("#app")，挂载组件，和el属性一样
+  vm.$watch()，设置全局监视
+  vm.$set()，设置响应式属性，Vue.set()一样
+  this.$destroy()，手动销毁vue实例，手动调用后，会调用beforeDestroy钩子函数，一般不用，组件切换也会销毁
+  $children，存放着它的所有子组件
+  this.$ref,可以拿到模板中的标签和组件，只需要在标签和组件上标记ref属性，被用于父子通信
+
+将vue脚手架的配置全部输出生成一个js文件给我们展示出来，输入指令：vue inspect > output.js    //将内部配置写成output.js给我们展示
+当然修改这个文件的配置是无效的，自定义配置需要创建vue.config.js
+
+mixin混合(混入)，复用配置
+  功能：可以把多个组件共用的配置提取成一个混入对象
+  使用步骤：
+    1)创建一个js文件，当做共同配置文件，在该文件中导出配置对象，例如
+      export const methods = {
+        methods: {
+           showName(){
+              console.log("xxx")
+           }
+        }
+      }
+    2)在组件中导入上面的js文件，然后在组件的options对象中，配置mixin属性，
+      属性值是数组，数组中元素就是导入的配置对象
+  注意：如果在复用的文件中，你的data中数据或者方法与复用js文件中的配置冲突
+    以你的为主，但是如果是钩子函数冲突了，则复用的钩子函数和你的钩子函数都起作用，并且复用的钩子函数先执行
+  上面的混合方式是局部混合，即每个组件中都需要导入复用文件，并配置mixin属性使用
+  而全局混合指的是，在main.js中导入复用js文件，然后Vue.mixin(导入的复用对象)，则整个应用所有组件都可以使用复用配置
+  如果是全局的混合，则不需要配置mixin属性，所有组件都有了复用文件的配置
+
+插件
+  之前都是直接导入插件依赖，然后Vue.use(插件对象),就可以直接使用了，原来当我们调用Vue.use()时，vue会调用插件中的install方法
+  并且install方法可以接收两个参数，第一个参数是Vue,第二个参数以后，就是插件使用者传递的数据，交给插件作者使用
+  在插件的install方法，我们可以定义一些全局的东西放到Vue中，就是一直说的全局注册，注册到Vue中，然后，我们使用插件就可以使用一些功能了
+
+scoped样式
+  作用：让样式在局部生效，防止冲突
+  写法：<style scoped>
+  app.vue中最好不要写scoped，因为如果在app.vue中配置样式，肯定是用于各个组件的
+
+vue中动态的决定某个标签的属性存不存在：<input type="checkbox" :checked="true">  //true则拥有该属性，false则不存在该属性
+这可不是说动态决定标签的样式有没有，而是标签的属性。
+
+浏览器本地存储，localStorage,sessionStorage，这两个统称为webStorage
+  本地存储，指的是网站把一些数据存在了浏览器中，打开开发者选项，查看application即可看到数据
+  localStorage是window对象中的属性，所以可以直接使用localStorage
+  存储数据：localStorage.setItem('msg',"wanyi")  //数据都是键值对形式，如果key重复存储，则值会替换，值只能是字符串，如果是数字，存到浏览器时也是字符串
+          const person = {name: '万一',age: 20}
+          //如果存对象，不能直接存，使用stringify将对象中数据转成json字符串，即{"name": "万一","age": "20"}，直接存，则存的是[Object Object]
+          localStorage.setItem('wanyi',JSON.stringify(person))
+
+  读取数据：localStorage.getItem("key"),
+          如果读取是对象，结果长这样：{"name": "万一","age": "20"}，那就需要JSON.parse(localStorage.getItem("key")),解析一下json字符串，转成js对象
+          如果读取一个不存在的数据，则返回null
+
+  删除数据：localStorage.removeItem("key")
+          删除localStorage上所有数据，localStorage.clear()
+
+  与localStorage相似的是sessionStorage，上面的四个api，sessionStorage都是相同的使用，
+  唯一的区别是：localStorage的数据，当浏览器关闭后，数据依然在，而如果是sessionStorage，浏览器关闭后，数据全部消失
+
+子向父传数据
+  你可以使用props传递函数，父向子传递一个函数，然后子将数据作为参数，调用这个函数，从而达到子向父传递数据
+  你可以通过自定义事件，父向子实例上设置一个自定义事件，子通过this.$emit('自定义事件回调函数',数据)方法，调用父组件的事件回调函数
+  你可以通过ref属性，在子组件标签上标记ref标签，ref值为子组件名称，然后在通过this.$refs.student.$on('事件回调函数',this.父组件方法) //这里有个this问题
+    向子组件实例绑定事件，只要子组件发射，就执行父组件方法，同第二种方式
+
+  $on,绑定事件，$once绑定一次性事件
+  解绑一个自定义事件：this.$off("自定义事件名")
+  解绑多个自定义事件：this.$off(['自定义事件1','自定义事件2'],'..3')
+  解绑所有自定义事件：this.$off()
+
+  给组件标签写原生事件会被当成自定义事件，我们需要加上.native修饰符，<Student @click.native="show"/>
+
+全局事件总线，globalEventBus
+  类似一种设计模式，方便组件之间传递数据，当我们将vue实例放到Vue原型对象上后
+  每个组件都能拿到vue实例对象，我们在vue实例对象上绑定自定义事件后，其他组件通过$emit方法触发自定义事件，
+  这样就能实现多个组件间通信，而不需要这些组件是父子关系。
+  案例如下，app.vue下HelloWorld组件与Home组件通信，这两个组件并不是父子
+    1)app.vue
+      <template>
+        <div id="app">
+          <HelloWorld/>
+          <about/>
+          <home/>
+        </div>
+      </template>
+      <script>
+        import Home from './views/Home';
+        import About from './views/About'
+        import HelloWorld from './components/HelloWorld';
+        export default {
+            components: {
+              Home,
+              About,
+              HelloWorld
+            }
+          }
+      </script>
+    2)Home.vue
+      <template>
+        <div class="home">
+          {{msg}}
+        </div>
+      </template>
+
+      <script>
+      import HelloWorld from '@/components/HelloWorld.vue'
+      export default {
+        name: 'Home',
+        data(){
+          return {
+            msg: ''
+          }
+        },
+        mounted() {
+          //给vue实例上绑定自定义事件，务必是箭头函数或methods中函数
+          this.$bus.$on('wanyi',(value)=>{
+            this.msg=value;
+          })
+        },
+        /*
+          将vue实例上的自定义事件清除
+         */
+        beforeDestroy() {
+          this.$bus.$off()
+        }
+      }
+      </script>
+    3)HelloWorld.vue
+      <template>
+        <div class="hello">
+          <button @click="sendMsg">点击给父组件发送数据</button>
+        </div>
+      </template>
+
+      <script>
+      export default {
+        name: 'HelloWorld',
+        methods: {
+          sendMsg(){
+            this.$bus.$emit('wanyi','一二三四五')
+          }
+        }
+      }
+      </script>
+
+消息发布与订阅
+  同全局事件总线，实现任意组件间通信，借助第三方库实现消息订阅与发布，pubsub-js
+  使用步骤：
+    1)安装pubsub：npm i pubsub-js
+    2)引入：import pubsub from 'pubsub-js'
+    3)接收数据：A组件想接收数据，则在A中订阅消息，订阅的回调函数使用A组件中方法或者箭头函数，使用普通函数则this是undefined
+    4)提供数据：B组件中通过pubsub.publish('消息名',数据)，发布数据到订阅了这个消息的组件中，会调用订阅该消息的组件的回调函数
+    5)组件销毁时，最好在A组件中取消订阅，在A组件beforeDestroy中：pubsub.unsubscribe(订阅的id)
+    总体看来，和自定义事件方式类似，发布方发布消息后，回调接收数据方的回调函数。
+  案例类似上面，App.vue一样，HelloWorld组件向Home组件传递数据
+    1)Home.vue
+      <template>
+        <div class="home">
+          {{msg}}
+        </div>
+      </template>
+
+      <script>
+      import pubsub from 'pubsub-js'
+      export default {
+        name: 'Home',
+        data(){
+          return {
+            msg: ''
+          }
+        },
+        mounted() {
+          //接收数据方订阅一个消息，消息名随意，例如"waner"
+          this.msgId = pubsub.subscribe('waner',(name,data)=>{
+            this.msg=data
+          });
+        },
+        beforeDestroy() {
+            //组件销毁时，清除消息
+            pubsub.unsubscribe(this.msgId)
+        }
+      }
+      </script>
+    2)HelloWorld.vue
+      <template>
+        <div class="hello">
+          <button @click="sendMsg">点击给父组件发送数据</button>
+        </div>
+      </template>
+
+      <script>
+      import pubsub from 'pubsub-js'
+      export default {
+        name: 'HelloWorld',
+        methods: {
+          sendMsg(){
+            //发布消息，参数一是消息名，参数二是数据，表示向订阅这些消息的组件发送数据
+            pubsub.publish('waner',"万二")
+          }
+        }
+      }
+      </script>
+
+
+$nextTick(function(){}),其中的回调函数，会在真实DOM挂载完毕后执行
+  为了提高效率，在方法结束之前，如果你修改了数据，vue并不会立刻更新真实DOM，而是更新虚拟DOM，
+  等到方法结束，才会将最新的虚拟DOM挂载到真实DOM中，通过$nextTick方法，我们可以在方法还未结束，
+  就可以获取最新的真实DOM，底层实际上是，当方法结束后，真实DOM挂载完毕后，去回调我们的$nextTick方法
+  什么时候用：当改变数据后，要基于更新后的新DOM进行某些操作时，要在nextTick所指定的回调函数中执行
+  当然了这个钩子函数一般在mounted中使用
+
+
+过度与动画
+  Vue封装的过度和动画，作用是：在插入，更新或移除DOM元素时，在合适的时候给元素添加样式类名
+  1)原生css实现动画
+    <template>
+      <div class="home">
+        <button  @click="isShow=!isShow">点击显示或隐藏</button>
+        <h1 v-show="isShow" class="come" >万一</h1>
+      </div>
+    </template>
+
+    <script>
+    export default {
+      name: 'Home',
+      data(){
+        return {
+          isShow: true
+        }
+      }
+    }
+    </script>
+
+    <style scoped>
+
+    h1{
+      background-color: #1da1f2;
+    }
+    .come{
+      animation: wanyi 1s;
+    }
+    .go{
+      animation: wanyi 1s reverse;
+    }
+    @keyframes wanyi {
+      from{
+        transform: translateX(-100%);
+      }
+      to{
+        transform: translateX(0px);
+      }
+    }
+    </style>
+    //通过点击事件指定对应的回调函数，在回调函数中改变class属性，从而达到动画的效果
+  2)使用vue中对动画的支持，使得我们无需再去手动更改class属性，vue会在合适的时候加上动画
+    要求是class样式名不能随意写，不能写成上面come或者go
+    <template>
+      <div class="home">
+        <button  @click="isShow=!isShow">点击显示或隐藏</button>
+        <transition name="wan" appear>  <!--appear表示刷新页面立马执行enter样式-->
+          <h1 v-show="isShow" class="come" >万一</h1>
+        </transition>
+      </div>
+    </template>
+
+    <script>
+    export default {
+      name: 'Home',
+      data(){
+        return {
+          isShow: true
+        }
+      }
+    }
+    </script>
+
+    <style scoped>
+    h1{
+      background-color: #1da1f2;
+    }
+    /*默认样式名*/
+    /*.v-enter-active{
+      animation: wanyi 1s;
+    }
+    .v-leave-active{
+      animation: wanyi 1s reverse;
+    }*/
+
+    /*如果给transition指定了name，则样式名改成：name-enter/leace-active*/
+    .wan-enter-active{
+      animation: wanyi 1s;
+    }
+    .wan-leave-active{
+      animation: wanyi 1s reverse;
+    }
+    /*动画*/
+    @keyframes wanyi {
+      from{
+        transform: translateX(-100%);
+      }
+      to{
+        transform: translateX(0px);
+      }
+    }
+    </style>
+  3)使用过度效果实现上面的案例
+    <style scoped>
+    h1{
+      background-color: #1da1f2;
+    }
+
+    /*
+      .wan-enter，表示进入的起点，
+      .wan-enter-to，表示进入的终点
+      .wan-leave，表示离开的起点
+      .wan-leave-to，表示离开的终点
+      .wan-enter-active，表示进入的过程中
+      .wan-leave-active，表示离开的过程中
+    */
+
+    /*进入的起点，离开的终点*/
+    .wan-enter,.wan-leave-to{
+      transform: translateX(-100%);
+    }
+
+    /*进入的终点，离开的起点*/
+    .wan-leave,.wan-enter-to{
+      transform: translateX(0);
+     }
+
+    /*进入的过程中，离开的过程中，在其中增加效果*/
+    .wan-enter-active ,.wan-leave-active{
+      transition: 0.5s linear;
+    }
+    </style>
+  提示：如果有多个标签都需要使用相同的动画，则使用<transform-group>标签包裹，并且给其中每个元素加上key值，值为不同的数字即可
+  4)第三方库，animate.css,千万不要下载错了，4版本的！
+    下面简单使用一下：
+    <template>
+      <div class="home">
+        <button  @click="isShow=!isShow">点击显示或隐藏</button>
+        <transition
+            name="animate__animated animate__bounce"
+            appear
+            enter-active-class="animate__backInDown"
+            leave-active-class="animate__backOutDown">
+          <h1 v-show="isShow">万一</h1>
+        </transition>
+      </div>
+    </template>
+
+    <script>
+    import 'animate.css'
+    export default {
+      name: 'Home',
+      data(){
+        return {
+          isShow: true
+        }
+      }
+    }
+    </script>
+
+    <style scoped>
+    h1{
+      background-color: #1da1f2;
+    }
+    </style>
+
+配置代理
+   1)module.exports = {
+     devServer: {
+       proxy: "http://localhost:5000"
+     }
+    }
+   优点：hexo 配置简单，请求资源时直接发给前端(8080)即可
+   缺点：不能配置多个代理，不能灵活的控制请求是否走代理
+   工作方式：若按照上述配置代理，当请求了前端不存在的资源时，那么该请求会转发给服务器(优先匹配前端资源)
+            换句话说，如果http://localhost:8080/test.txt，这个test.txt文件存在前端项目的public目录中，
+            则该请求不会被代理，后端接收不到这个请求。而是直接将该public目录中文件交给浏览器。
+
+   2)module.exports = {
+    devServer: {
+      proxy: {
+        '/home': {
+          target: 'http://api.qingyunke.com',
+          ws: true, //是否支持websocket，默认为true
+          changeOrigin: true, // 用于控制请求头中的host值,true则表示不暴露自己的host字段，host字段与目标服务器字段一致。默认为true
+          pathRewrite: {
+            '^/home': ''
+                // '^/home': '/home'
+          }
+        }
+      }
+    }
+   }
+  "/home"是路径前缀，使用在请求地址的端口号后面，表示请求是代理请求，请求本地服务器将请求转发给代理的地址中，即上面的http://api.qingyunke.com
+  而当我们发送请求:http://localhost:8080/home/getAllUser时，虽然本地服务器代理了，但是发送到目标地址的真正请求是：/home/getAllUser
+  而我们接收的请求是：/getAllUser，所以我们需要配置pathRewrite，将请求中"/home"改成""
+
+
+扩展运算符
+  ...是es6语法的扩展运算符，用于遍历参数对象的所有可遍历属性，然后拷贝到当前对象中
+  let obj = {a:1,b:2}
+  let obj2={
+    c: 3,
+    d: 4,
+    ...(obj)
+  }
+  console.log(obj2) //{a:1,b:2,c:3,d:4}
+
+vuex
+  actions中的方法可以通过context参数调用其他action方法
+    context.dispatch('action方法名',数据)
+  mapState，mapGetters，mapActions，mapMutations:帮我们生成代码的函数
+    这些都是vuex提供给我们的函数，帮助我们减少一部分代码的编写，如果不使用上面的函数，同样也可以使用vuex
+    下面是一个简单的案例：
+    1)App.vue
+      <template>
+        <div id="app">
+          <!--
+            mapState,简化代码，不必再使用this.store.state.msg
+          -->
+          <wan-yi/>
+        </div>
+      </template>
+      <script>
+        import WanYi from './components/WanYi';
+        export default {
+            components: {
+              WanYi,
+            }
+          }
+      </script>
+    2)store/index.js
+      import Vue from 'vue'
+      import Vuex from 'vuex'
+
+      Vue.use(Vuex)
+
+      export default new Vuex.Store({
+        /*共享对象中的数据*/
+        state: {
+          msg: '万一梦想实现了呢？',
+          school: '湖北师范大学',
+          address: '湖北黄石'
+        },
+        /*共享对象中更改数据*/
+        mutations: {
+          changeMsg(state,data){
+            state.msg=data
+          },
+          changeSchool(state,data){
+            state.school=data
+          },
+          changeAddress(state,data){
+            state.address=data
+          }
+        },
+        /*共享对象中的计算属性*/
+        getters: {
+          getter1(state){
+            return "中国-"+state.address
+          },
+          getter2(state,getter){
+            return "地球-"+getter.getter1
+          },
+          getter3(state,getter){
+            return "银河系-"+getter.getter2
+          }
+
+        },
+        actions: {
+          action1(context,data){
+            return new Promise(resolve => {
+              console.log("执行异步更改msg任务。。。。");
+              setTimeout(()=>{
+                context.commit("changeMsg",data)
+                resolve("异步任务已完成")
+              },1000)
+            })
+          },
+          action2(context,data){
+            return new Promise(resolve => {
+              console.log("执行异步更改school任务。。。。");
+              setTimeout(()=>{
+                context.commit("changeSchool",data)
+                resolve("异步任务已完成")
+              },1000)
+            })
+          },
+          action3(context,data){
+            return new Promise(resolve => {
+              console.log("执行异步更改address任务。。。。");
+              setTimeout(()=>{
+                context.commit("changeAddress",data)
+                resolve("异步任务已完成")
+              },1000)
+            })
+          },
+        },
+      })
+    3)WanYi.vue
+      <template>
+        <div>
+          WanYi组件内：<br>
+          **************************测试mapState*****************************************<br>
+          <!--传统方式拿到共享对象state中的数据-->
+          {{$store.state.msg}}
+          {{$store.state.school}}
+          {{$store.state.address}}
+          <br/>
+          <!--使用mapState拿到共享对象中state数据，并生成相应的对象形式，对象写法-->
+          {{msg2}}
+          {{school2}}
+          {{address2}}
+          <br>
+          <!--mapState的数组写法使用-->
+          {{msg}}
+          {{school}}
+          {{address}}
+          <br/>
+
+          **************************测试mapMutations*****************************************<br>
+          <!--传统方式调用mutations中的异步方法-->
+          <button @click="mutationsTest1">传统方式调用mutations中的异步方法</button>
+          <br>
+          <!--使用mapMutations,对象写法-->
+          <button @click="mutationsTest2">mapMutations方式使用mutations,对象形式</button>
+          <br>
+          <!--mapMutations数组写法使用-->
+          <button @click="mutationsTest3">mapMutations方式使用mutations,数组形式</button>
+          <br>
+          **************************测试mapGetters*****************************************<br>
+          <!--传统方式使用getters-->
+          {{$store.getters.getter2}}
+          {{$store.getters.getter3}}
+          <br>
+          <!--mapGetter对象形式-->
+          {{two}}
+          {{three}}
+          <br>
+          <!--mapGetter数组形式-->
+          {{getter2}}
+          {{getter3}}
+          <br>
+          **************************测试mapActions*****************************************<br>
+          <!--传统方式调用actions中的异步方法-->
+          <button @click="actionsTest1">传统方式调用actions中的异步方法</button><br>
+          <!--mapActions使用actions中的异步方法，对象形式-->
+          <button @click="actionsTest2">mapActions使用actions中的异步方法，对象形式</button><br>
+          <!--mapActions使用actions中的异步方法，数组形式-->
+          <button @click="actionsTest3">mapActions使用actions中的异步方法，数组形式</button><br>
+        </div>
+      </template>
+
+      <script>
+      import {mapState,mapGetters,mapActions,mapMutations} from 'vuex'
+      export default {
+        name: "WanYi",
+        methods: {
+          /*传统方式使用mutations更改数据*/
+          mutationsTest1(){
+            this.$store.commit('changeMsg','我的梦想在哪里？')
+            this.$store.commit('changeSchool','苏州大学')
+            this.$store.commit('changeAddress','浙江省')
+          },
+
+          /*mapMutations对象写法*/
+          ...mapMutations({changeMsg2: 'changeMsg',changeSchool2: 'changeSchool',changeAddress2: 'changeAddress'}),
+          mutationsTest2(){
+            /*
+              这里是直接在methods中执行导入的函数，你可以在DOM中设置一个点击按钮，回调这些函数，
+              例如：<button @click="changeMsg2()"></button>
+              注意：就算没有参数要传，你还是要写上(),不然会出错，因为mapMutations等函数在帮我们创建方法的时候是下面这样的
+                changeMsg2(value){
+                  this.$store.commit('changeMsg',value)
+                }
+              如果你使用changeMsg2的时候，没有写上(),则就会传递一个event对象作为参数，所以在DOM中调用这些函数就算没有参数传递，也必须写上()
+            */
+            this.changeMsg2("我的梦想在哪里？")
+            this.changeSchool2("苏州大学")
+            this.changeAddress2("浙江省")
+          },
+
+          /*mapMutations数组写法，要求是：生成的方法要与共享对象中的mutations中方法名相同*/
+          ...mapMutations(['changeMsg','changeSchool','changeAddress']),
+          mutationsTest3(){
+            this.changeMsg("学习？学个屁")
+            this.changeSchool("家里蹲大学")
+            this.changeAddress("银河系第三宇宙")
+          },
+
+          /*传统方式调用actions中的异步方法*/
+          actionsTest1(){
+            this.$store.dispatch('action1','光在哪里？')
+              .then(data=>{
+              console.log(data);
+            })
+          },
+
+          /*mapActions方式使用actions中方法*/
+          ...mapActions({updateSchool:'action2'}),
+          actionsTest2(){
+            this.updateSchool("中国科学院大学").then(data=>{
+              console.log(data);
+            })
+          },
+          /*mapActions方式使用actions中方法*/
+          ...mapActions(['action3']),
+          actionsTest3(){
+            this.action3("彭泽县南阳村").then(data=>{
+              console.log(data);
+            })
+          }
+        },
+        computed: {
+          /*从共享变量的state中读取数据，并生成响应的计算属性，这是对象写法*/
+          ...mapState({msg2:'msg',school2: 'school',address2: 'address'}),
+          /*同上，不过是数组写法，这种写法要求生成的计算属性名与state中共享变量名相同*/
+          ...mapState(['msg','school','address']),
+
+          /*mapGetter的对象形式*/
+          ...mapGetters({two:'getter2',three:'getter3'}),
+          /*mapGetter的数组形式，数组形式要求生成的计算属性名和getters中的函数名要相同*/
+          ...mapGetters(['getter2','getter3']),
+
+        }
+      }
+      </script>
+
+Vue3
+  创建vue3项目：vue create 项目名(vue-cli版本必须要4.5.0以上)
+  vue2与vue3中main.js的对比
+    vue2中的main.js
+      import Vue from 'vue'
+      import App from './App.vue'
+      new Vue({
+        el: '#app',
+        template: '<App/>',
+        components: {
+          App
+        }
+      })
+      进化成
+      new Vue({
+        //el: '#app'
+        render: h=> h(App)
+      }).$mount("#app")
+    vue3中的main.js
+      import {createApp} from 'vue'
+      import App from './App.vue'
+      createApp(App).mount("#app")
+  常用的Composition API,组合式API
+    1)setup函数
+      组件中所用到的：数据，方法等等，均要配置在setup中
+      setup函数的两种返回值：
+        * 若返回一个对象，则对象中的属性，方法，在模板中均可以直接使用
+        * 若返回一个渲染函数：则可以自定义渲染内容(了解)
+      小案例：
+      <template>
+        我的名字：{{name}}<br/>
+        我的年纪：{{age}}
+      </template>
+      export default {
+        name: 'App',
+        setup(){
+          let name = "夜归风似雪"
+          let age = 23
+          return {
+            name,
+            age
+          }
+        }
+      }
+      </script>
+    2)ref函数
+      上面例子中的数据并不是响应式的，如果想实现数据响应式，需要借助ref函数
+      ref案例之处理基本类型
+        <template>
+          我的名字：{{name}}<br/>
+          我的年纪：{{age}}<br/>
+          <button @click="changeName">更改姓名</button>
+        </template>
+        import {ref} from 'vue'
+        export default {
+          name: 'App',
+          setup(){
+            let name = ref("夜归风似雪")   //使用ref函数创建的对象是ref对象，这里的数据实现了响应式
+            let age = ref(23)
+            function changeName() {
+              name.value="晚来天欲雪"
+            }
+            return {
+              name,
+              age,
+              changeName
+            }
+          }
+        }
+        </script>
+      ref案例之处理对象类型
+        <template>
+          person信息：{{person.sex}}
+          <button @click="changeName">更改性别</button>
+        </template>
+        <script>
+        import {ref} from 'vue'
+        export default {
+          name: 'App',
+          setup(){
+            let person = ref({color: 'yellow',sex: 'boy'})
+            function changeName() {
+              person.value.sex='girl'
+            }
+            return {
+              changeName,
+              person
+            }
+          }
+        }
+        </script>
+      总结：经过ref函数调用，生成的name,age,person都是refImpl引用对象，数据都保存在refImpl对象的value属性中
+      如果是普通数据类型，value属性保存的就是定义时的数据，例如"夜归风似雪",23等等，
+        这些数据使用Object.defineProperty实现响应式的(有setter,getter方法)
+      如果是对象类型，则value属性中保存的是proxy对象，如果想修改对象类型中的数据：person.value.sex="girl",
+        对象类型的数据，内部使用vue3中的reactive函数实现响应式
+    3)reactive函数
+      作用：定义一个对象类型的响应式数据(基本类型不要用它，要用ref函数)
+      语法：const 代理对象 = reactive(源对象),接收一个对象(或数组),返回一个代理对象(Proxy实例对象，简称proxy对象)
+      reactive定义的响应式数据是"深层次的"
+      内部基于ES6的Proxy实现，通过代理对象操作源对象内部数据进行操作，ref函数之所以能对对象类型数据进行响应式，底层也是通过reactive函数
+  Vue3中响应式原理
+    vue2的响应式
+      实现原理：
+        对象类型：通过Object.defineProperty方法对属性的读取，修改进行拦截(数据劫持)
+        数组类型：通过重写更新数组的一系列方法来实现拦截(类似装饰器，对数组的变更方法进行了包裹)
+      存在问题：
+        新增对象属性，删除对象属性，界面不会更新，解决办法是通过Vue.set或者this.$set
+        直接通过下标修改数组，界面不会自动更新，解决办法是使用vue重写的对数组进行操作的方法
+    vue3的响应式
+      实现原理
+        通过Proxy(代理)：拦截对象中任意属性的变化，即对属性的增删改查
+        通过Reflect(反射)：对被代理对象的属性进行操作
+        下面是一个实现响应式的案例，
+        突然发现，数据代理指的是，如果A代理B，对A的操作就会使得B更改，而响应式原理指的是，在A对B更改的过程中可以做点事，即劫持到对数据的更改操作
+        //源对象
+        let person = {
+          name: '万一',
+          age: 23
+        }
+        /*代理对象，通过对代理对象增删改查，已经实现了数据代理，但没实现响应式(数据劫持)，即我不能拦截到对数据的增删改查操作*/
+        //let p = new Proxy(person,{});
+
+        /*做到数据劫持*/
+        let p = new Proxy(person,{
+          get(target,propName){
+            console.log("已经成功劫持到对数据读取操作")
+            //return target[propName]
+            return Reflect.get(target,propName)   //vue3中使用Reflect对属性进行真正操作，好处是：使得框架不必写太多try，catch
+          },
+          set(target,propName,value){
+            console.log("已经成功劫持到对数据修改/添加操作")
+            //return target[propName]=value
+            return Reflect.set(target,propName,value)
+          },
+          deleteProperty(target,propName) {
+            console.log("已经成功劫持到对数据删除操作")
+            //return delete target[propName]
+            return Reflect.deleteProperty(target,propName)
+          }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
