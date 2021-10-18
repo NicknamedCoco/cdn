@@ -1,0 +1,41 @@
+git status  		查看状态
+git add			添加文件到暂存区
+git commit		将文件提交到本地仓库
+git log			查看版本日志
+git log --pretty=oneline	查看简化版的日志
+git reflog			查看版本号
+git reset --hard HEAD^	回退到上一个版本
+git reset --hard HEAD~100	回退到上100个版本
+git checkout --readme.txt	取消工作区的所有操作
+cat readme.txt		查看文件内容
+rm readme.txt		删除文件
+git push origin master	把本地master分支的最新修改推送到GitHub上
+git push origin dev		把本地dev分支推送到远程仓库
+git checkout -b dev		创建并切换分支
+(相当于两条命令: 
+git branch dev		创建dev分支
+git checkout dev		切换分支到dev
+)
+git checkout -b dev origin/dev将远程库中的dev分支创建到本地dev来
+git branch		查看当前分支
+git branch -d dev 		删除dev分支
+git merge dev		合并分支
+git merge --no-ff -m "merge with no-ff" dev	禁用Fast forward模式合并dev分支
+git stash			将当前的工作现场隐藏起来
+git stash list		查看隐藏的工作现场
+恢复工作现场有两种方式:
+1,git stash apply		恢复后,stash内容并不删除,需要使用
+git stash drop来删除工作现场
+2,git stash pop		恢复stash内容的同时,删除stash内容
+git remote		查看远程库的信息
+git remote -v		查看远程库的详细信息
+git pull			取回远程仓库某个分支的更新,再与本地指定分支合并
+(
+git pull = git fetch+git merge
+例如:git pull origin master:dev将远程仓库的master分支拉取过来,
+并与本地的dev分支合并,后面的冒号可以省略,即:
+git pull origin master	表示将远程master与当前分支合并
+)
+
+
+ 
