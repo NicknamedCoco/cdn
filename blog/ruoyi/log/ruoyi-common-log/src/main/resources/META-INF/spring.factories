@@ -1,0 +1,6 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.ruoyi.common.log.service.AsyncLogService,\
+  com.ruoyi.common.log.aspect.LogAspect
+
+# SpringFactories 是 spring 提供的SPI机制，它读取META-INF/spring.factories 文件中配置的接口实现类名称，然后在程序中读取这些配置文件并实例化。
+# 在日常工作中，我们可能需要实现一些SDK或者 Spring Boot Starter给被人使用， 这个 使用我们就可以使用 Factories 机制。
